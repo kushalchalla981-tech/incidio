@@ -1,0 +1,5 @@
+sed -i 's/<pre className="p-3 bg-page-bg border border-border-soft rounded-md text-\[11px\] text-text-secondary font-mono overflow-x-auto whitespace-pre-wrap">/<\/pre>/g' frontend/src/app/security/scans/[id]/page.tsx
+sed -i 's/{finding.evidence || "No exact evidence available."}//g' frontend/src/app/security/scans/[id]/page.tsx
+sed -i 's/<\/pre>/<pre className="p-3 bg-page-bg border border-border-soft rounded-md text-[11px] text-text-secondary font-mono overflow-x-auto whitespace-pre-wrap">{finding.evidence || "No exact evidence available."}<\/pre>/g' frontend/src/app/security/scans/[id]/page.tsx
+sed -i 's/{rerun.isPending ? <Loader2 size={14} className="animate-spin" \/> : <RefreshCw size={14} \/>} Re-run/>\n              {rerun.isPending ? <Loader2 size={14} className="animate-spin" \/> : <RefreshCw size={14} \/>} Re-run/g' frontend/src/app/security/scans/[id]/page.tsx
+sed -i 's/{finding.promoted_to_incident ? "Incident Created" : "Create Incident"}/>\n                    {finding.promoted_to_incident ? "Incident Created" : "Create Incident"}/g' frontend/src/app/security/scans/[id]/page.tsx

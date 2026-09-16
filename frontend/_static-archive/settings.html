@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings — AI Incident Copilot</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .settings-nav-tabs { display: flex; gap: 2px; margin-bottom: var(--space-6); background: var(--surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 4px; overflow-x: auto; }
+    .settings-tab { padding: 8px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 500; color: var(--fg-2); cursor: pointer; transition: all 0.2s ease; white-space: nowrap; border: none; background: none; }
+    .settings-tab:hover { background: var(--accent-soft); color: var(--accent); }
+    .settings-tab.active { background: var(--accent); color: var(--accent-on); }
+  </style>
+</head>
+<body>
+<div class="gradient-mesh"></div>
+<div class="ambient-bg">
+  <div class="ambient-orb ambient-orb-1" style="width:400px;height:400px;top:-5%;right:-8%"></div>
+  <div class="ambient-orb ambient-orb-3" style="width:250px;height:250px;top:30%;left:-3%"></div>
+</div>
+<div class="sparkle-overlay" id="sparkleOverlay"></div>
+<div class="cursor-glow-wrap"><div class="cursor-glow" id="cursorGlow"></div></div>
+<div class="app-shell" style="position:relative;z-index:2">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><div class="sidebar-brand-icon">IC</div><span class="sidebar-brand-text">Incident Copilot</span></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="sidebar-link-label">Overview</span></a>
+      <a href="dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg><span class="sidebar-link-label">Dashboard</span></a>
+      <a href="incidents.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/><path d="M19 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="15" r="1"/></svg><span class="sidebar-link-label">Incidents</span></a>
+      <a href="logs.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h12"/></svg><span class="sidebar-link-label">Logs</span></a>
+      <a href="analytics.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16"/><path d="M6 16v-4"/><path d="M10 16V8"/><path d="M14 16V4"/><path d="M18 16v-6"/></svg><span class="sidebar-link-label">Analytics</span></a>
+      <a href="settings.html" class="sidebar-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="sidebar-link-label">Settings</span></a>
+    </nav>
+    <div class="sidebar-footer"><button class="sidebar-toggle" id="sidebarToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+  </aside>
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Search incidents, logs..." /></div>
+      <div class="topbar-section">
+        <div style="position:relative">
+          <button class="topbar-btn" id="notifToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+          <div class="notif-dropdown" id="notifDropdown"><div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/></svg></div><div><div class="notif-text"><strong>CRIT-2210</strong> escalated</div><div class="notif-time">2 min ago</div></div></div></div>
+        </div>
+        <button class="topbar-avatar magnetic-btn" id="profileToggle">AK</button>
+      </div>
+    </header>
+    <div class="content-area">
+      <div class="page-header anim-fade slide-group">
+        <div class="page-header-left">
+          <h1 style="display:flex;align-items:center;gap:12px"><span class="text-gradient-anim">Settings</span></h1>
+        </div>
+        <div class="page-header-right">
+          <button class="btn btn-primary btn-sm magnetic-btn ripple-btn pulse-ring-success">Save Changes</button>
+        </div>
+      </div>
+
+      <div class="settings-nav-tabs slide-group">
+        <button class="settings-tab active">Profile</button>
+        <button class="settings-tab">Notifications</button>
+        <button class="settings-tab">Integrations</button>
+        <button class="settings-tab">Alerting Rules</button>
+        <button class="settings-tab">Team</button>
+        <button class="settings-tab">Billing</button>
+      </div>
+
+      <div class="settings-section anim-fade-up">
+        <div class="row-between" style="margin-bottom:var(--space-4)"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2" style="vertical-align:middle;margin-right:8px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Team Profile</h3></div>
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt>
+          <div style="display:flex;align-items:center;gap:var(--gap-lg);flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:var(--gap-md)">
+              <div class="profile-avatar-lg" style="width:56px;height:56px;font-size:20px">AK</div>
+              <div><div style="font-weight:600;font-size:15px">Alex Kovacs</div><div style="font-size:13px;color:var(--muted)">alex@example.com</div></div>
+            </div>
+            <button class="btn btn-secondary btn-sm magnetic-btn ripple-btn">Change Avatar</button>
+            <button class="btn btn-ghost btn-sm">Edit Profile</button>
+          </div>
+          <div class="form-row" style="margin-top:var(--space-5)">
+            <div class="field"><label>Full Name</label><input class="input" type="text" value="Alex Kovacs" /></div>
+            <div class="field"><label>Email</label><input class="input" type="email" value="alex@example.com" /></div>
+          </div>
+          <div class="form-row" style="margin-top:var(--gap-md)">
+            <div class="field"><label>Team Name</label><input class="input" type="text" value="Squadron" /></div>
+            <div class="field"><label>Role</label><select class="select-native"><option>Engineering Lead</option><option>SRE</option><option>Developer</option></select></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section anim-fade-up stagger-2">
+        <div class="row-between" style="margin-bottom:var(--space-4)"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2" style="vertical-align:middle;margin-right:8px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Notifications</h3></div>
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt>
+          <div class="stack">
+            <div class="row-between"><div><div style="font-weight:500;font-size:14px">Critical Incidents</div><div style="font-size:12px;color:var(--muted)">PagerDuty, Slack, Email</div></div><label class="toggle"><input type="checkbox" checked /><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+            <div class="row-between"><div><div style="font-weight:500;font-size:14px">High Severity</div><div style="font-size:12px;color:var(--muted)">Slack, Email</div></div><label class="toggle"><input type="checkbox" checked /><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+            <div class="row-between"><div><div style="font-weight:500;font-size:14px">Weekly Digest</div><div style="font-size:12px;color:var(--muted)">Email summary every Monday</div></div><label class="toggle"><input type="checkbox" /><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+            <div class="row-between"><div><div style="font-weight:500;font-size:14px">Postmortem Reminders</div><div style="font-size:12px;color:var(--muted)">Slack reminder after incident resolution</div></div><label class="toggle"><input type="checkbox" checked /><span class="toggle-track"><span class="toggle-thumb"></span></span></label></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section anim-fade-up stagger-3">
+        <div class="row-between" style="margin-bottom:var(--space-4)"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2" style="vertical-align:middle;margin-right:8px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/><circle cx="12" cy="12" r="3"/></svg>Integrations</h3></div>
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt>
+          <div class="stack">
+            <div class="service-row"><div class="service-name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Slack</div><span class="badge badge-success"><span class="glow-dot success" style="width:5px;height:5px;margin-right:4px;vertical-align:middle"></span>Connected</span></div>
+            <div class="service-row"><div class="service-name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>PagerDuty</div><span class="badge badge-success"><span class="glow-dot success" style="width:5px;height:5px;margin-right:4px;vertical-align:middle"></span>Connected</span></div>
+            <div class="service-row"><div class="service-name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>GitHub</div><span class="badge badge-info"><span class="glow-dot accent" style="width:5px;height:5px;margin-right:4px;vertical-align:middle"></span>Connect</span></div>
+            <div class="service-row"><div class="service-name"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Email</div><span class="badge badge-success"><span class="glow-dot success" style="width:5px;height:5px;margin-right:4px;vertical-align:middle"></span>Configured</span></div>
+          </div>
+          <button class="btn btn-secondary btn-sm magnetic-btn ripple-btn" style="margin-top:var(--space-4)">Add Integration</button>
+        </div>
+      </div>
+
+      <div class="settings-section anim-fade-up stagger-4">
+        <div class="row-between" style="margin-bottom:var(--space-4)"><h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2" style="vertical-align:middle;margin-right:8px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Alerting Rules</h3></div>
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt>
+          <div class="form-row">
+            <div class="field"><label>Error Rate Threshold</label><div style="display:flex;align-items:center;gap:8px"><input class="input" type="number" value="10" style="width:80px" /><span style="font-size:13px;color:var(--muted)">% in 5 min</span></div></div>
+            <div class="field"><label>Latency Threshold</label><div style="display:flex;align-items:center;gap:8px"><input class="input" type="number" value="5000" style="width:80px" /><span style="font-size:13px;color:var(--muted)">ms p95</span></div></div>
+          </div>
+          <div class="form-row" style="margin-top:var(--gap-md)">
+            <div class="field"><label>Auto-Resolve After</label><div style="display:flex;align-items:center;gap:8px"><input class="input" type="number" value="30" style="width:80px" /><span style="font-size:13px;color:var(--muted)">minutes</span></div></div>
+            <div class="field"><label>Silence Window</label><div style="display:flex;align-items:center;gap:8px"><input class="input" type="number" value="60" style="width:80px" /><span style="font-size:13px;color:var(--muted)">minutes after resolve</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section anim-fade-up stagger-5">
+        <div class="row-between" style="margin-bottom:var(--space-4)"><h3 style="color:var(--danger)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--danger)" stroke-width="2" style="vertical-align:middle;margin-right:8px"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86l-8.57 14.86A1.5 1.5 0 0 0 3.07 21h17.86a1.5 1.5 0 0 0 1.35-2.28L13.71 3.86a1.5 1.5 0 0 0-2.58 0z"/></svg>Danger Zone</h3></div>
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt style="border-color:color-mix(in oklab, var(--danger) 20%, transparent)">
+          <p style="font-size:13px;color:var(--fg-2);margin-bottom:var(--space-4)">These actions are irreversible. Proceed with caution.</p>
+          <div style="display:flex;gap:var(--gap-md);flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm ripple-btn" style="color:var(--danger);border-color:color-mix(in oklab, var(--danger) 30%, transparent)">Clear All Data</button>
+            <button class="btn btn-secondary btn-sm ripple-btn" style="color:var(--danger);border-color:color-mix(in oklab, var(--danger) 30%, transparent)">Reset to Defaults</button>
+            <button class="btn btn-secondary btn-sm ripple-btn" style="color:var(--danger);border-color:color-mix(in oklab, var(--danger) 30%, transparent)">Delete Workspace</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="profile-panel" id="profilePanel">
+  <div class="profile-panel-header"><h3>Profile</h3><button class="profile-close" id="profileClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div class="profile-info"><div class="profile-avatar-lg">AK</div><div class="profile-name">Alex Kovacs</div><div class="profile-email">alex@example.com</div></div>
+  <div class="profile-nav">
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Account</a>
+    <a href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Settings</a>
+    <a href="#" class="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  document.getElementById('sidebarToggle').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('sidebar').classList.toggle('collapsed'); });
+  const pf = document.getElementById('profileToggle'), pp = document.getElementById('profilePanel'), ov = document.getElementById('overlay');
+  function oP(){ pp.classList.add('open'); ov.classList.add('open'); }
+  function cP(){ pp.classList.remove('open'); ov.classList.remove('open'); }
+  pf.addEventListener('click', oP);
+  document.getElementById('profileClose').addEventListener('click', cP);
+  ov.addEventListener('click', cP);
+  const nt = document.getElementById('notifToggle'), nd = document.getElementById('notifDropdown');
+  nt.addEventListener('click', function(e){ e.stopPropagation(); nd.classList.toggle('open'); });
+  document.addEventListener('click', function(){ nd.classList.remove('open'); });
+  nd.addEventListener('click', function(e){ e.stopPropagation(); });
+
+  // Cursor glow
+  const cg = document.getElementById('cursorGlow');
+  if(cg) document.addEventListener('mousemove', function(e){ cg.style.left = e.clientX + 'px'; cg.style.top = e.clientY + 'px'; });
+
+  // Ripple
+  document.querySelectorAll('.ripple-btn').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      const rect = this.getBoundingClientRect();
+      const r = document.createElement('span'); r.className = 'ripple';
+      const size = Math.max(rect.width, rect.height);
+      r.style.width = r.style.height = size + 'px';
+      r.style.left = (e.clientX - rect.left - size/2) + 'px';
+      r.style.top = (e.clientY - rect.top - size/2) + 'px';
+      this.appendChild(r); setTimeout(() => r.remove(), 600);
+    });
+  });
+
+  // Settings tab switching
+  document.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      this.style.transform = `perspective(600px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateZ(8px)`;
+    });
+    card.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+
+  document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width/2) * 0.2;
+      const y = (e.clientY - r.top - r.height/2) * 0.2;
+      this.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    btn.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+})();
+</script>
+</body>
+</html>

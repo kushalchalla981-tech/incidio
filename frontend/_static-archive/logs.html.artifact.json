@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "frontend/logs.html",
+  "entry": "frontend/logs.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-06-04T18:33:47.432Z",
+  "updatedAt": "2026-06-04T18:33:47.432Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

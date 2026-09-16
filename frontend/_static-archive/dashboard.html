@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — AI Incident Copilot</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .live-update-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 12px; border-radius: var(--radius-pill);
+      background: color-mix(in oklab, var(--success) 12%, transparent);
+      color: var(--success); font-size: 11px; font-weight: 500;
+      animation: heroTagPulse 2s ease-in-out infinite;
+    }
+    .mini-chart-row { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin-top: var(--space-4); }
+    .mini-bar { flex: 1; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--accent), color-mix(in oklab, var(--accent) 30%, transparent)); animation: chartBarGrow 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards; transform-origin: bottom; transform: scaleY(0); min-height: 3px; }
+    .kpi-card { position: relative; overflow: hidden; }
+    .kpi-card .kpi-bg-glow { position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(600px circle at var(--mx,50%) var(--my,50%), color-mix(in oklab, var(--accent) 6%, transparent), transparent 60%); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
+    .kpi-card:hover .kpi-bg-glow { opacity: 1; }
+    .dashboard-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-md); margin-bottom: var(--space-6); }
+    @media (max-width: 1024px) { .dashboard-grid-3 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { .dashboard-grid-3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="gradient-mesh"></div>
+<div class="ambient-bg">
+  <div class="ambient-orb ambient-orb-1"></div>
+  <div class="ambient-orb ambient-orb-2"></div>
+  <div class="ambient-orb ambient-orb-3"></div>
+</div>
+<div class="sparkle-overlay" id="sparkleOverlay"></div>
+<div class="cursor-glow-wrap"><div class="cursor-glow" id="cursorGlow"></div></div>
+<canvas id="particles-canvas"></canvas>
+<div class="app-shell" style="position:relative;z-index:2">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">IC</div>
+      <span class="sidebar-brand-text">Incident Copilot</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="sidebar-link-label">Overview</span>
+      </a>
+      <a href="dashboard.html" class="sidebar-link active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+        <span class="sidebar-link-label">Dashboard</span>
+      </a>
+      <a href="incidents.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/><path d="M19 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="15" r="1"/></svg>
+        <span class="sidebar-link-label">Incidents</span>
+      </a>
+      <a href="logs.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h12"/></svg>
+        <span class="sidebar-link-label">Logs</span>
+      </a>
+      <a href="analytics.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16"/><path d="M6 16v-4"/><path d="M10 16V8"/><path d="M14 16V4"/><path d="M18 16v-6"/></svg>
+        <span class="sidebar-link-label">Analytics</span>
+      </a>
+      <a href="settings.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span class="sidebar-link-label">Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search incidents, logs..." />
+      </div>
+      <div class="topbar-section">
+        <div class="meta" id="liveClock" style="font-size:12px;letter-spacing:0.04em"></div>
+        <div class="live-update-badge" id="liveBadge"><span class="live-dot" style="margin:0 0 0;width:5px;height:5px"></span>Live</div>
+        <div style="position:relative">
+          <button class="topbar-btn" id="notifToggle" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="badge-dot"></span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/></svg></div><div><div class="notif-text"><strong>CRIT-2210</strong> escalated — API gateway timeout</div><div class="notif-time">2 min ago</div></div></div>
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div><div class="notif-text"><strong>INC-118</strong> auto-resolved after canary rollback</div><div class="notif-time">14 min ago</div></div></div>
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div><div><div class="notif-text">Memory usage exceeds 85% on <strong>api-prod-3</strong></div><div class="notif-time">32 min ago</div></div></div>
+          </div>
+        </div>
+        <button class="topbar-avatar magnetic-btn" id="profileToggle">AK</button>
+      </div>
+    </header>
+
+    <div class="content-area">
+      <div class="page-header anim-fade slide-group">
+        <div class="page-header-left">
+          <h1 style="display:flex;align-items:center;gap:12px">
+            <span class="text-gradient-anim">Dashboard</span>
+            <span class="badge badge-info pulse-ring" style="font-size:11px;padding:3px 12px">
+              <span class="live-dot" style="margin-right:4px"></span>Live
+            </span>
+          </h1>
+        </div>
+        <div class="page-header-right">
+          <select style="padding:6px 24px 6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--fg);font-size:12px;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%2360708a%27 stroke-width=%272%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;cursor:pointer;outline:none;">
+            <option>Last 24 hours</option>
+            <option>Last 7 days</option>
+            <option>Last 30 days</option>
+          </select>
+          <button class="btn btn-primary btn-sm magnetic-btn ripple-btn pulse-ring-success">Refresh</button>
+        </div>
+      </div>
+
+      <div class="kpi-row slide-group">
+        <div class="kpi-card kpi-glow-hover tilt-card glass-shine border-glow-hover" data-tilt>
+          <div class="kpi-bg-glow"></div>
+          <div class="kpi-label">
+            <span class="glow-dot danger" style="width:6px;height:6px;margin-right:6px;vertical-align:middle"></span>
+            Active Incidents
+          </div>
+          <div class="kpi-value num counter-value text-gradient-danger" data-target="3" id="kpiActive">0</div>
+          <div class="kpi-change up"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>2 since yesterday</div>
+          <svg class="sparkline-svg" width="100%" height="28" viewBox="0 0 140 28" style="margin-top:10px"><path class="sparkline-path danger" d="M0,24 Q10,22 20,20 T40,18 T60,10 T80,16 T100,8 T120,6 T140,4"/></svg>
+        </div>
+        <div class="kpi-card kpi-glow-hover tilt-card glass-shine border-glow-hover" data-tilt>
+          <div class="kpi-bg-glow"></div>
+          <div class="kpi-label">Avg Response Time</div>
+          <div class="kpi-value num counter-value" data-target="4.2">0</div>
+          <div class="kpi-change up"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>12% faster</div>
+          <svg class="sparkline-svg" width="100%" height="28" viewBox="0 0 140 28" style="margin-top:10px"><path class="sparkline-path success" d="M0,24 Q10,22 20,18 T40,12 T60,16 T80,10 T100,8 T120,8 T140,6"/></svg>
+        </div>
+        <div class="kpi-card kpi-glow-hover tilt-card glass-shine border-glow-hover" data-tilt>
+          <div class="kpi-bg-glow"></div>
+          <div class="kpi-label">
+            <span class="glow-dot success" style="width:6px;height:6px;margin-right:6px;vertical-align:middle"></span>
+            Resolved Today
+          </div>
+          <div class="kpi-value num counter-value text-gradient-success" data-target="7">0</div>
+          <div class="kpi-change up"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>3 more than yesterday</div>
+          <svg class="sparkline-svg" width="100%" height="28" viewBox="0 0 140 28" style="margin-top:10px"><path class="sparkline-path success" d="M0,20 Q10,18 20,14 T40,10 T60,12 T80,8 T100,6 T120,4 T140,2"/></svg>
+        </div>
+        <div class="kpi-card kpi-glow-hover tilt-card glass-shine border-glow-hover" data-tilt>
+          <div class="kpi-bg-glow"></div>
+          <div class="kpi-label">Service Health</div>
+          <div class="kpi-value num counter-value text-gradient-success" data-target="98.7">0</div>
+          <div class="kpi-change down"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>0.3% this hour</div>
+          <svg class="sparkline-svg" width="100%" height="28" viewBox="0 0 140 28" style="margin-top:10px"><path class="sparkline-path accent" d="M0,6 Q10,8 20,6 T40,10 T60,8 T80,12 T100,10 T120,14 T140,12"/></svg>
+        </div>
+      </div>
+
+      <div class="dashboard-grid-3">
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt style="position:relative;overflow:hidden">
+          <h3 style="font-size:15px;margin-bottom:var(--space-3);display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            24h Activity
+          </h3>
+          <div class="mini-chart-row" id="miniChart">
+            <div class="mini-bar" style="height:20%"></div>
+            <div class="mini-bar" style="height:35%"></div>
+            <div class="mini-bar" style="height:55%"></div>
+            <div class="mini-bar" style="height:40%"></div>
+            <div class="mini-bar" style="height:70%"></div>
+            <div class="mini-bar" style="height:45%"></div>
+            <div class="mini-bar" style="height:80%"></div>
+            <div class="mini-bar" style="height:60%"></div>
+            <div class="mini-bar" style="height:90%"></div>
+            <div class="mini-bar" style="height:50%"></div>
+            <div class="mini-bar" style="height:30%"></div>
+            <div class="mini-bar" style="height:65%"></div>
+            <div class="mini-bar" style="height:75%"></div>
+            <div class="mini-bar" style="height:40%"></div>
+            <div class="mini-bar" style="height:25%"></div>
+            <div class="mini-bar" style="height:55%"></div>
+            <div class="mini-bar" style="height:85%"></div>
+            <div class="mini-bar" style="height:70%"></div>
+            <div class="mini-bar" style="height:60%"></div>
+            <div class="mini-bar" style="height:45%"></div>
+            <div class="mini-bar" style="height:35%"></div>
+            <div class="mini-bar" style="height:50%"></div>
+            <div class="mini-bar" style="height:65%"></div>
+            <div class="mini-bar" style="height:40%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:10px;color:var(--muted)">
+            <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>Now</span>
+          </div>
+        </div>
+
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt style="position:relative;overflow:hidden">
+          <div class="glass-blob glass-blob-2"></div>
+          <div style="position:relative;z-index:1">
+            <div class="row-between" style="margin-bottom:var(--space-4)">
+              <h3 style="font-size:15px;display:flex;align-items:center;gap:6px">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                System Health
+              </h3>
+              <div class="radial-gauge" style="width:64px;height:64px">
+                <svg viewBox="0 0 100 100" width="64" height="64">
+                  <circle class="gauge-bg" cx="50" cy="50" r="45"/>
+                  <circle class="gauge-progress success" cx="50" cy="50" r="45" id="healthGauge"/>
+                </svg>
+                <div class="gauge-label">
+                  <span class="gauge-value" id="healthVal" style="font-size:14px">98</span>
+                  <span class="gauge-sub" style="font-size:9px">%</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="service-row"><div class="service-name"><span class="glow-dot danger"></span>API Gateway</div><span class="service-status badge badge-danger">Degraded</span></div>
+              <div class="service-row"><div class="service-name"><span class="glow-dot warn"></span>User Service</div><span class="service-status badge badge-warn">Elevated Errors</span></div>
+              <div class="service-row"><div class="service-name"><span class="glow-dot success"></span>Database Primary</div><span class="service-status badge badge-success">Operational</span></div>
+              <div class="service-row"><div class="service-name"><span class="glow-dot success"></span>Redis Cluster</div><span class="service-status badge badge-success">Operational</span></div>
+              <div class="service-row"><div class="service-name"><span class="glow-dot success"></span>Billing Service</div><span class="service-status badge badge-success">Operational</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card-static tilt-card glass-shine border-glow-hover" data-tilt>
+          <h3 style="font-size:15px;margin-bottom:var(--space-4);display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            Quick Actions
+          </h3>
+          <div class="stack" style="gap:var(--gap-sm)">
+            <button class="btn btn-primary btn-sm magnetic-btn ripple-btn" style="justify-content:center">New Incident</button>
+            <button class="btn btn-secondary btn-sm magnetic-btn ripple-btn" style="justify-content:center">Run Postmortem</button>
+            <button class="btn btn-secondary btn-sm magnetic-btn ripple-btn" style="justify-content:center">Invoke Runbook</button>
+            <button class="btn btn-ghost btn-sm magnetic-btn" style="justify-content:center">View On-Call Schedule</button>
+          </div>
+          <div class="load-bar" style="margin-top:var(--space-5)">
+            <div class="load-bar-fill"></div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center">Auto-refreshing every 30s</div>
+        </div>
+      </div>
+
+      <div class="glass-card-static slide-group tilt-card glass-shine border-glow-hover" style="margin-top:var(--space-4);position:relative;overflow:hidden" data-tilt>
+        <div style="position:relative;z-index:1">
+          <div class="row-between" style="margin-bottom:var(--space-4)">
+            <h3 style="font-size:16px;display:flex;align-items:center;gap:8px">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              Recent Incidents
+            </h3>
+            <a href="incidents.html" class="btn btn-ghost btn-sm">View all</a>
+          </div>
+          <table class="ds-table">
+            <thead>
+              <tr><th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>Service</th><th class="num-col">Duration</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span class="num" style="font-weight:500">CRIT-2210</span></td><td>API gateway timeout</td><td><span class="badge badge-danger"><span class="glow-dot danger" style="width:6px;height:6px;margin-right:4px;vertical-align:middle"></span>Critical</span></td><td><span class="badge badge-danger">Open</span></td><td>api-gw-prod</td><td class="num-col">—</td></tr>
+              <tr><td><span class="num" style="font-weight:500">CRIT-2209</span></td><td>Database conn. pool exhausted</td><td><span class="badge badge-danger"><span class="glow-dot danger" style="width:6px;height:6px;margin-right:4px;vertical-align:middle"></span>Critical</span></td><td><span class="badge badge-warn">Investigating</span></td><td>db-primary</td><td class="num-col">34m</td></tr>
+              <tr><td><span class="num" style="font-weight:500">INC-118</span></td><td>Elevated error rate on user service</td><td><span class="badge badge-warn"><span class="glow-dot warn" style="width:6px;height:6px;margin-right:4px;vertical-align:middle"></span>High</span></td><td><span class="badge badge-warn">Investigating</span></td><td>user-svc</td><td class="num-col">1h 17m</td></tr>
+              <tr><td><span class="num" style="font-weight:500">INC-117</span></td><td>Canary rollback — billing service</td><td><span class="badge badge-info">Medium</span></td><td><span class="badge badge-success"><span class="glow-dot success" style="width:6px;height:6px;margin-right:4px;vertical-align:middle"></span>Resolved</span></td><td>billing-svc</td><td class="num-col">18m</td></tr>
+              <tr><td><span class="num" style="font-weight:500">INC-116</span></td><td>Redis cluster failover</td><td><span class="badge badge-neutral">Low</span></td><td><span class="badge badge-success"><span class="glow-dot success" style="width:6px;height:6px;margin-right:4px;vertical-align:middle"></span>Resolved</span></td><td>redis-cluster</td><td class="num-col">12m</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="profile-panel" id="profilePanel">
+  <div class="profile-panel-header"><h3>Profile</h3><button class="profile-close" id="profileClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div class="profile-info"><div class="profile-avatar-lg">AK</div><div class="profile-name">Alex Kovacs</div><div class="profile-email">alex@example.com</div></div>
+  <div class="profile-nav">
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Account</a>
+    <a href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Settings</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Notifications</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security</a>
+    <a href="#" class="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  document.getElementById('sidebarToggle').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('sidebar').classList.toggle('collapsed'); });
+
+  const pf = document.getElementById('profileToggle'), pp = document.getElementById('profilePanel'), ov = document.getElementById('overlay');
+  function oP(){ pp.classList.add('open'); ov.classList.add('open'); }
+  function cP(){ pp.classList.remove('open'); ov.classList.remove('open'); }
+  pf.addEventListener('click', oP);
+  document.getElementById('profileClose').addEventListener('click', cP);
+  ov.addEventListener('click', cP);
+
+  const nt = document.getElementById('notifToggle'), nd = document.getElementById('notifDropdown');
+  nt.addEventListener('click', function(e){ e.stopPropagation(); nd.classList.toggle('open'); });
+  document.addEventListener('click', function(){ nd.classList.remove('open'); });
+  nd.addEventListener('click', function(e){ e.stopPropagation(); });
+
+  // Cursor glow
+  const cg = document.getElementById('cursorGlow');
+  if(cg) document.addEventListener('mousemove', function(e){ cg.style.left = e.clientX + 'px'; cg.style.top = e.clientY + 'px'; });
+
+  // Sparkle overlay
+  const se = document.getElementById('sparkleOverlay');
+  if(se){   for(let i=0;i<25;i++){ const s=document.createElement('div');s.className='sparkle';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.animationDelay=(Math.random()*5).toFixed(1)+'s';s.style.animationDuration=(3+Math.random()*3).toFixed(1)+'s';s.style.width=s.style.height=(1+Math.random()*2)+'px';se.appendChild(s); } }
+
+  // Ripple
+  document.querySelectorAll('.ripple-btn').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      const rect = this.getBoundingClientRect();
+      const r = document.createElement('span'); r.className = 'ripple';
+      const size = Math.max(rect.width, rect.height);
+      r.style.width = r.style.height = size + 'px';
+      r.style.left = (e.clientX - rect.left - size/2) + 'px';
+      r.style.top = (e.clientY - rect.top - size/2) + 'px';
+      this.appendChild(r);
+      setTimeout(() => r.remove(), 600);
+    });
+  });
+
+  // Live clock
+  function updateClock(){
+    const d = new Date();
+    const el = document.getElementById('liveClock');
+    if(el) el.textContent = d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) + ' UTC';
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Simulated real-time KPI updates
+  let kpiTick = 0;
+  setInterval(() => {
+    kpiTick++;
+    const el = document.getElementById('kpiActive');
+    if(!el) return;
+    // Jitter the active incidents count slightly
+    const base = 3;
+    const jitter = Math.sin(kpiTick * 0.3) * 0.5;
+    el.textContent = Math.round(base + jitter);
+
+    // Update live badge
+    const badge = document.getElementById('liveBadge');
+    if(badge) badge.innerHTML = `<span class="live-dot" style="margin:0;width:5px;height:5px"></span>Updated ${kpiTick}s ago`;
+  }, 5000);
+
+  // Counter animation
+  document.querySelectorAll('.counter-value').forEach(c => {
+    const target = parseFloat(c.dataset.target);
+    const isFloat = target % 1 !== 0;
+    const dur = 1200;
+    const start = performance.now();
+    function tick(now){
+      const p = Math.min((now - start) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      c.textContent = isFloat ? (target * e).toFixed(1) : Math.round(target * e);
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+
+  // Radial gauge animation
+  const gauge = document.querySelector('.gauge-progress');
+  if(gauge){
+    const circumference = 2 * Math.PI * 45;
+    gauge.style.strokeDasharray = circumference;
+    setTimeout(() => { gauge.style.strokeDashoffset = circumference * 0.02; }, 400);
+  }
+
+  // Simulate health value
+  let healthVal = 98;
+  setInterval(() => {
+    healthVal = 97 + Math.random() * 2.5;
+    const hv = document.getElementById('healthVal');
+    if(hv) hv.textContent = Math.round(healthVal);
+  }, 8000);
+
+  // Tilt effect
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('mousemove', function(e){
+      const rect = this.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      this.style.transform = `perspective(600px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateZ(8px)`;
+    });
+    card.addEventListener('mouseleave', function(){
+      this.style.transform = '';
+    });
+  });
+
+  // KPI glow track
+  document.querySelectorAll('.kpi-glow-hover').forEach(el => {
+    el.addEventListener('mousemove', function(e){
+      const rect = this.getBoundingClientRect();
+      this.style.setProperty('--mouse-x', (e.clientX - rect.left) + 'px');
+      this.style.setProperty('--mouse-y', (e.clientY - rect.top) + 'px');
+    });
+  });
+
+  // Magnetic
+  document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', function(e){
+      const rect = this.getBoundingClientRect();
+      const x = (e.clientX - rect.left - rect.width/2) * 0.2;
+      const y = (e.clientY - rect.top - rect.height/2) * 0.2;
+      this.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    btn.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+})();
+
+// Particle canvas
+(function(){
+  const canvas = document.getElementById('particles-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  const count = Math.min(60, Math.floor(w * h / 20000));
+  for(let i = 0; i < count; i++){
+    particles.push({ x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4, r: Math.random() * 2 + 0.5, a: Math.random() * 0.3 + 0.05 });
+  }
+  function draw(){
+    ctx.clearRect(0, 0, w, h);
+    particles.forEach((p, i) => {
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0 || p.x > w) p.vx *= -1;
+      if(p.y < 0 || p.y > h) p.vy *= -1;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(79, 140, 255, ${p.a})`; ctx.fill();
+      for(let j = i + 1; j < particles.length; j++){
+        const dx = particles[j].x - p.x, dy = particles[j].y - p.y, dist = Math.sqrt(dx * dx + dy * dy);
+        if(dist < 120){ ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(particles[j].x, particles[j].y); ctx.strokeStyle = `rgba(79, 140, 255, ${0.06 * (1 - dist/120)})`; ctx.stroke(); }
+      }
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

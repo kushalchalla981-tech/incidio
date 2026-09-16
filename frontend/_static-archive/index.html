@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Incident Copilot</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .hero-section {
+      min-height: calc(100vh - var(--topbar-h));
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      padding: var(--space-12) 0;
+    }
+    .hero-mesh-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      border-radius: inherit;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 3;
+      max-width: 720px;
+      margin-inline: auto;
+    }
+    .hero-type-line {
+      min-height: 1.6em;
+    }
+    .hero-ring-row {
+      display: flex;
+      gap: var(--gap-xl);
+      margin-top: var(--space-8);
+      flex-wrap: wrap;
+    }
+    .hero-cta {
+      display: flex;
+      gap: var(--gap-md);
+      margin-top: var(--space-8);
+      flex-wrap: wrap;
+    }
+    .launcher-section {
+      padding: var(--space-12) 0;
+      position: relative;
+      z-index: 1;
+    }
+    .launcher-section-title {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+    .launcher-section-title h2 {
+      font-size: 28px;
+      margin-bottom: var(--gap-sm);
+    }
+    .launcher-section-title p {
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .glow-grid-line {
+      position: absolute;
+      background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--accent) 8%, transparent), transparent);
+      height: 1px;
+      width: 100%;
+      left: 0;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+<div class="gradient-mesh"></div>
+<div class="ambient-bg">
+  <div class="ambient-orb ambient-orb-1"></div>
+  <div class="ambient-orb ambient-orb-2"></div>
+  <div class="ambient-orb ambient-orb-3"></div>
+</div>
+<div class="sparkle-overlay" id="sparkleOverlay"></div>
+<div class="cursor-glow-wrap"><div class="cursor-glow" id="cursorGlow"></div></div>
+<canvas id="particles-canvas"></canvas>
+<div class="app-shell" style="position:relative;z-index:2">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">IC</div>
+      <span class="sidebar-brand-text">Incident Copilot</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="sidebar-link-label">Overview</span>
+      </a>
+      <a href="dashboard.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+        <span class="sidebar-link-label">Dashboard</span>
+      </a>
+      <a href="incidents.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/><path d="M19 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="15" r="1"/></svg>
+        <span class="sidebar-link-label">Incidents</span>
+      </a>
+      <a href="logs.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h12"/></svg>
+        <span class="sidebar-link-label">Logs</span>
+      </a>
+      <a href="analytics.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16"/><path d="M6 16v-4"/><path d="M10 16V8"/><path d="M14 16V4"/><path d="M18 16v-6"/></svg>
+        <span class="sidebar-link-label">Analytics</span>
+      </a>
+      <a href="settings.html" class="sidebar-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <span class="sidebar-link-label">Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" placeholder="Search incidents, logs..." />
+      </div>
+      <div class="topbar-section">
+        <div style="position:relative">
+          <button class="topbar-btn" id="notifToggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="badge-dot"></span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/></svg></div><div><div class="notif-text"><strong>CRIT-2210</strong> escalated</div><div class="notif-time">2 min ago</div></div></div>
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div><div class="notif-text"><strong>INC-118</strong> auto-resolved</div><div class="notif-time">14 min ago</div></div></div>
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div><div><div class="notif-text">Memory >85% on <strong>api-prod-3</strong></div><div class="notif-time">32 min ago</div></div></div>
+          </div>
+        </div>
+        <button class="topbar-avatar magnetic-btn" id="profileToggle">AK</button>
+      </div>
+    </header>
+
+    <div class="content-area" style="overflow-y:auto">
+      <div class="hero-section">
+        <div class="hero-mesh-wrap">
+          <div class="hero-mesh"></div>
+        </div>
+
+        <div class="float-shapes">
+          <div class="float-shape float-shape-1"></div>
+          <div class="float-shape float-shape-2"></div>
+          <div class="float-shape float-shape-3"></div>
+          <div class="float-shape float-shape-4"></div>
+          <div class="float-shape float-shape-5"></div>
+        </div>
+
+        <div class="floating-svc" style="top:18%;left:4%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+        </div>
+        <div class="floating-svc" style="top:60%;left:2%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </div>
+        <div class="floating-svc" style="top:80%;left:8%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h12"/></svg>
+        </div>
+        <div class="floating-svc" style="top:10%;right:6%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="floating-svc" style="top:42%;right:3%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="floating-svc" style="top:72%;right:6%">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+
+        <div class="hero-content anim-slide-bounce">
+          <div class="hero-tag" style="margin-bottom:var(--space-5)">
+            <span class="live-dot" style="margin-right:2px"></span>
+            AI-Powered Incident Management
+          </div>
+
+          <p class="eyebrow" style="margin-bottom:var(--gap-sm);font-size:12px">INCIDENT COPILOT</p>
+          <h1 style="font-size:clamp(40px, 6vw, 68px);margin-bottom:var(--gap-md);line-height:1.05;letter-spacing:-0.03em">
+            Monitor, investigate, and <br>
+            <span class="text-gradient-anim">resolve faster.</span>
+          </h1>
+          <p class="lead" style="font-size:18px;max-width:560px">Intelligent log analysis, real-time incident detection, and automated postmortems for small engineering teams.</p>
+
+          <div class="hero-type-line" style="margin-top:var(--space-5)">
+            <span style="font-size:16px;color:var(--fg-2)">Your on-call engineer: </span>
+            <span id="typeLine" style="font-size:16px;color:var(--accent);font-weight:500"></span>
+          </div>
+
+          <div class="hero-cta">
+            <a href="dashboard.html" class="btn btn-primary ripple-btn" style="padding:12px 28px;font-size:15px;border-radius:12px">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+              Open Dashboard
+            </a>
+            <a href="analytics.html" class="btn btn-secondary ripple-btn" style="padding:12px 28px;font-size:15px;border-radius:12px">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h16"/><path d="M6 16v-4"/><path d="M10 16V8"/><path d="M14 16V4"/><path d="M18 16v-6"/></svg>
+              View Analytics
+            </a>
+          </div>
+
+          <div class="hero-ring-row">
+            <div class="stat-ring anim-scale-in" style="animation-delay:0.3s">
+              <svg viewBox="0 0 80 80">
+                <circle class="stat-ring-bg" cx="40" cy="40" r="36"/>
+                <circle class="stat-ring-fill success" cx="40" cy="40" r="36" id="ring1"/>
+              </svg>
+              <div class="stat-ring-label">
+                <div class="stat-ring-num counter-value text-gradient-success" data-target="99.2">0</div>
+                <div class="stat-ring-sub">Uptime %</div>
+              </div>
+            </div>
+            <div class="stat-ring anim-scale-in" style="animation-delay:0.4s">
+              <svg viewBox="0 0 80 80">
+                <circle class="stat-ring-bg" cx="40" cy="40" r="36"/>
+                <circle class="stat-ring-fill" cx="40" cy="40" r="36" id="ring2"/>
+              </svg>
+              <div class="stat-ring-label">
+                <div class="stat-ring-num counter-value" data-target="247">0</div>
+                <div class="stat-ring-sub">Resolved</div>
+              </div>
+            </div>
+            <div class="stat-ring anim-scale-in" style="animation-delay:0.5s">
+              <svg viewBox="0 0 80 80">
+                <circle class="stat-ring-bg" cx="40" cy="40" r="36"/>
+                <circle class="stat-ring-fill warn" cx="40" cy="40" r="36" id="ring3"/>
+              </svg>
+              <div class="stat-ring-label">
+                <div class="stat-ring-num counter-value" data-target="12">0</div>
+                <div class="stat-ring-sub">Team Size</div>
+              </div>
+            </div>
+            <div class="stat-ring anim-scale-in" style="animation-delay:0.6s">
+              <svg viewBox="0 0 80 80">
+                <circle class="stat-ring-bg" cx="40" cy="40" r="36"/>
+                <circle class="stat-ring-fill success" cx="40" cy="40" r="36" id="ring4"/>
+              </svg>
+              <div class="stat-ring-label">
+                <div class="stat-ring-num counter-value" data-target="8.4">0</div>
+                <div class="stat-ring-sub">Avg Res. (m)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scroll-indicator">
+          <span>Scroll</span>
+          <div class="scroll-arrow"></div>
+        </div>
+      </div>
+
+      <div class="glow-grid-line" style="position:relative;margin:0"></div>
+
+      <div class="launcher-section">
+        <div class="launcher-section-title slide-group">
+          <p class="eyebrow" style="margin-bottom:var(--gap-xs)">EXPLORE</p>
+          <h2>Your command center</h2>
+          <p>Everything you need to manage incidents across your stack.</p>
+        </div>
+
+        <div class="launcher-grid slide-group" style="margin-top:var(--space-6)">
+          <a href="dashboard.html" class="launcher-card tilt-card glass-shine border-glow-hover" data-tilt>
+            <div class="launcher-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg></div>
+            <h3>Dashboard</h3>
+            <p>Real-time KPIs, service health status, and recent incident timeline at a glance.</p>
+          </a>
+          <a href="incidents.html" class="launcher-card tilt-card glass-shine border-glow-hover" data-tilt>
+            <div class="launcher-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/><path d="M19 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="15" r="1"/></svg></div>
+            <h3>Incidents</h3>
+            <p>Track, investigate, and resolve incidents with AI-powered root cause suggestions.</p>
+          </a>
+          <a href="logs.html" class="launcher-card tilt-card glass-shine border-glow-hover" data-tilt>
+            <div class="launcher-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h12"/></svg></div>
+            <h3>Logs</h3>
+            <p>Search, filter, and analyze application logs with pattern recognition and anomaly detection.</p>
+          </a>
+          <a href="analytics.html" class="launcher-card tilt-card glass-shine border-glow-hover" data-tilt>
+            <div class="launcher-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16"/><path d="M6 16v-4"/><path d="M10 16V8"/><path d="M14 16V4"/><path d="M18 16v-6"/></svg></div>
+            <h3>Analytics</h3>
+            <p>Trend analysis, MTBF/MTTR tracking, and automated postmortem generation.</p>
+            <span class="badge badge-info" style="margin-top:8px">New</span>
+          </a>
+          <a href="settings.html" class="launcher-card tilt-card glass-shine border-glow-hover" data-tilt>
+            <div class="launcher-card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>
+            <h3>Settings</h3>
+            <p>Team configuration, alerting rules, notification channels, and integrations.</p>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="profile-panel" id="profilePanel">
+  <div class="profile-panel-header"><h3>Profile</h3><button class="profile-close" id="profileClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div class="profile-info"><div class="profile-avatar-lg">AK</div><div class="profile-name">Alex Kovacs</div><div class="profile-email">alex@example.com</div></div>
+  <div class="profile-nav">
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Account</a>
+    <a href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Settings</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>Notifications</a>
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Security</a>
+    <a href="#" class="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  document.getElementById('sidebarToggle').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('sidebar').classList.toggle('collapsed'); });
+  const pf = document.getElementById('profileToggle'), pp = document.getElementById('profilePanel'), ov = document.getElementById('overlay');
+  function oP(){ pp.classList.add('open'); ov.classList.add('open'); }
+  function cP(){ pp.classList.remove('open'); ov.classList.remove('open'); }
+  pf.addEventListener('click', oP);
+  document.getElementById('profileClose').addEventListener('click', cP);
+  ov.addEventListener('click', cP);
+  const nt = document.getElementById('notifToggle'), nd = document.getElementById('notifDropdown');
+  nt.addEventListener('click', function(e){ e.stopPropagation(); nd.classList.toggle('open'); });
+  document.addEventListener('click', function(){ nd.classList.remove('open'); });
+  nd.addEventListener('click', function(e){ e.stopPropagation(); });
+
+  // Cursor glow
+  const cg = document.getElementById('cursorGlow');
+  if(cg){
+    document.addEventListener('mousemove', function(e){ cg.style.left = e.clientX + 'px'; cg.style.top = e.clientY + 'px'; });
+  }
+
+  // Ripple effect on buttons
+  document.querySelectorAll('.ripple-btn').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      const rect = this.getBoundingClientRect();
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const size = Math.max(rect.width, rect.height);
+      r.style.width = r.style.height = size + 'px';
+      r.style.left = (e.clientX - rect.left - size/2) + 'px';
+      r.style.top = (e.clientY - rect.top - size/2) + 'px';
+      this.appendChild(r);
+      setTimeout(() => r.remove(), 600);
+    });
+  });
+
+  // Sparkle overlay
+  const sparkleEl = document.getElementById('sparkleOverlay');
+  if(sparkleEl){
+    for(let i=0;i<30;i++){
+      const s = document.createElement('div');
+      s.className = 'sparkle';
+      s.style.left = Math.random()*100 + '%';
+      s.style.top = Math.random()*100 + '%';
+      s.style.animationDelay = (Math.random()*5).toFixed(1) + 's';
+      s.style.animationDuration = (3+Math.random()*3).toFixed(1) + 's';
+      s.style.width = s.style.height = (1+Math.random()*2) + 'px';
+      sparkleEl.appendChild(s);
+    }
+  }
+
+  // Typewriter effect
+  const lines = ['Your on-call deserves better.', 'Resolve before your coffee gets cold.', 'Incidents happen. We make them short.', '99.2% uptime. And climbing.'];
+  let li = 0, ci = 0, isDeleting = false;
+  const el = document.getElementById('typeLine');
+  function typeStep(){
+    if(!el) return;
+    const full = lines[li];
+    if(!isDeleting){
+      ci++;
+      el.textContent = full.substring(0, ci);
+      if(ci === full.length){ setTimeout(() => { isDeleting = true; setTimeout(typeStep, 800); }, 2000); return; }
+    } else {
+      ci--;
+      el.textContent = full.substring(0, ci);
+      if(ci === 0){ isDeleting = false; li = (li + 1) % lines.length; }
+    }
+    setTimeout(typeStep, isDeleting ? 20 : 40);
+  }
+  setTimeout(typeStep, 600);
+
+  // Counter animation
+  document.querySelectorAll('.counter-value').forEach(c => {
+    const target = parseFloat(c.dataset.target);
+    const isFloat = target % 1 !== 0;
+    const dur = 1400;
+    const start = performance.now();
+    function tick(now){
+      const p = Math.min((now - start) / dur, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      c.textContent = isFloat ? (target * e).toFixed(1) : Math.round(target * e);
+      if(p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+
+  // Stat ring fill animation
+  document.querySelectorAll('.stat-ring-fill').forEach((ring, i) => {
+    const circumference = 2 * Math.PI * 36;
+    ring.style.strokeDasharray = circumference;
+    const offsets = [0.992, 0.85, 0.6, 0.7];
+    setTimeout(() => {
+      ring.style.strokeDashoffset = circumference * (1 - offsets[i % offsets.length]);
+    }, 600 + i * 150);
+  });
+
+  // Tilt
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      this.style.transform = `perspective(600px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateZ(8px)`;
+    });
+    card.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+
+  // Magnetic
+  document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width/2) * 0.2;
+      const y = (e.clientY - r.top - r.height/2) * 0.2;
+      this.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    btn.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+})();
+
+// Particles
+(function(){
+  const canvas = document.getElementById('particles-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  const count = Math.min(60, Math.floor(w * h / 20000));
+  for(let i=0;i<count;i++){ particles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.4,vy:(Math.random()-0.5)*0.4,r:Math.random()*2+0.5,a:Math.random()*0.3+0.05}); }
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    particles.forEach((p,i)=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>w) p.vx*=-1;
+      if(p.y<0||p.y>h) p.vy*=-1;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(79,140,255,${p.a})`; ctx.fill();
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[j].x-p.x, dy=particles[j].y-p.y, dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<120){ ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(particles[j].x,particles[j].y); ctx.strokeStyle=`rgba(79,140,255,${0.06*(1-dist/120)})`; ctx.stroke(); }
+      }
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

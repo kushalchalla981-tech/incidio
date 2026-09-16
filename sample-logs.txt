@@ -1,0 +1,24 @@
+2026-05-18T10:15:23Z [api-service] INFO User 12345 logged in successfully from 192.168.1.100
+2026-05-18T10:15:24Z [api-service] INFO Processing request GET /api/users/12345
+2026-05-18T10:15:25Z [database] INFO Query executed in 45ms: SELECT * FROM users WHERE id=12345
+2026-05-18T10:15:26Z [api-service] INFO Response sent: 200 OK
+2026-05-18T10:16:10Z [api-service] INFO User 67890 logged in successfully from 10.0.0.50
+2026-05-18T10:16:15Z [api-service] WARNING Slow query detected: 2.3s for GET /api/orders
+2026-05-18T10:16:20Z [database] WARNING Connection pool at 80% capacity
+2026-05-18T10:17:00Z [api-service] ERROR Database connection timeout after 5s
+2026-05-18T10:17:01Z [api-service] ERROR Failed to process request GET /api/orders: connection timeout
+2026-05-18T10:17:02Z [api-service] ERROR Database connection timeout after 5s
+2026-05-18T10:17:03Z [api-service] ERROR Failed to process request GET /api/products: connection timeout
+2026-05-18T10:17:05Z [database] CRITICAL Connection pool exhausted, rejecting new connections
+2026-05-18T10:17:06Z [api-service] ERROR Database connection timeout after 5s
+2026-05-18T10:17:07Z [api-service] ERROR Database connection timeout after 5s
+2026-05-18T10:17:08Z [api-service] ERROR Database connection timeout after 5s
+2026-05-18T10:17:10Z [load-balancer] WARNING Health check failed for api-service instance 3
+2026-05-18T10:17:15Z [api-service] ERROR Database connection timeout after 5s
+2026-05-18T10:17:20Z [monitoring] CRITICAL Alert: Error rate exceeded 50% threshold
+2026-05-18T10:17:25Z [database] INFO Scaling connection pool from 100 to 200 connections
+2026-05-18T10:17:30Z [api-service] INFO Database connection established
+2026-05-18T10:17:35Z [api-service] INFO Processing request GET /api/orders
+2026-05-18T10:17:40Z [monitoring] INFO Alert resolved: Error rate back to normal
+2026-05-18T10:18:00Z [api-service] INFO User 12345 logged out
+2026-05-18T10:18:05Z [api-service] INFO System operating normally

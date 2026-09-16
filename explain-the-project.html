@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Incident Copilot — How the Whole Project Works</title>
+<style>
+  :root {
+    --page-bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --border: #e3e8ef;
+    --text: #101828;
+    --text-2: #475467;
+    --text-3: #667085;
+    --accent: #2f5fd0;
+    --accent-soft: #eef3fe;
+    --security: #6b56d3;
+    --security-soft: #f0edfc;
+    --critical: #d93d4b;
+    --high: #d97706;
+    --medium: #2f5fd0;
+    --low: #667085;
+    --success: #0e9f6e;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--text);
+    font-family: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 24px 20px 72px; }
+
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 34px 28px;
+    margin-top: 24px;
+  }
+  .hero .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .hero .kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .hero h1 { font-size: 26px; line-height: 1.2; margin: 16px 0 8px; letter-spacing: -.02em; }
+  .hero p { margin: 0; color: var(--text-2); max-width: 680px; }
+
+  section { margin-top: 34px; }
+  h2 {
+    font-size: 19px;
+    letter-spacing: -.01em;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .num {
+    display: inline-grid;
+    place-items: center;
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  h3 { font-size: 15px; margin: 0 0 6px; }
+  .lede { color: var(--text-2); margin: 0 0 18px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 12px;
+  }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+
+  .callout {
+    background: var(--accent-soft);
+    border: 1px solid #d6e2fb;
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: #1d3d94;
+  }
+  .callout.sec { background: var(--security-soft); border-color: #ddd6f7; color: #4a3a9e; }
+  .callout .title { font-weight: 700; }
+
+  .chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .chip .value { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .chip .label { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+
+  .feat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .feat .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin-bottom: 10px;
+    background: var(--surface-2);
+    color: var(--text-3);
+  }
+  .feat .tag.blue { background: var(--accent-soft); color: var(--accent); }
+  .feat .tag.purple { background: var(--security-soft); color: var(--security); }
+  .feat .tag.green { background: #e4f5ef; color: var(--success); }
+  .feat .tag.red { background: #fdebec; color: var(--critical); }
+  .feat .tag.orange { background: #fdf0e2; color: var(--high); }
+  .feat h4 { margin: 0 0 6px; font-size: 15px; }
+  .feat p { margin: 0; color: var(--text-2); font-size: 14px; }
+
+  .stack { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stack .s {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .stack .s .c { width: 9px; height: 9px; border-radius: 3px; }
+  .c-front { background: var(--accent); }
+  .c-back { background: var(--success); }
+  .c-data { background: var(--high); }
+  .c-ai { background: var(--security); }
+
+  .arch { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; align-items: stretch; }
+  .arch .box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .arch .box .role { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+  .arch .box .name { font-size: 16px; font-weight: 700; margin: 4px 0; }
+  .arch .box p { margin: 0; color: var(--text-2); font-size: 13.5px; }
+  .flow { text-align: center; color: var(--text-3); font-size: 20px; font-weight: 700; }
+
+  .tbl {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .tbl .row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 14px;
+    padding: 11px 18px;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .tbl .row:last-child { border-bottom: 0; }
+  .tbl .row.head {
+    background: var(--surface-2);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .tbl .r { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 600; }
+  .tbl .d { color: var(--text-2); font-size: 14px; }
+
+  ul { margin: 10px 0 0; padding-left: 20px; }
+  li { margin: 6px 0; color: var(--text-2); }
+  li strong { color: var(--text); }
+
+  .check { padding-left: 0; list-style: none; }
+  .check li { padding-left: 28px; position: relative; }
+  .check li::before {
+    content: "✓";
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--success);
+    font-weight: 700;
+  }
+
+  .kbd {
+    display: inline-block;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    padding: 1px 7px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 13px;
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--text-3);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .tbl .row { grid-template-columns: 1fr; gap: 6px; }
+    .tbl .row.head { display: none; }
+    .arch { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <span class="kicker"><span class="dot"></span> Project overview</span>
+    <h1>Incident Copilot — how the whole project works</h1>
+    <p>
+      A plain-English tour of the entire project: what it is, what it does,
+      how it's built, and how to run it. Written for people who want to
+      understand the whole thing without reading source code.
+    </p>
+  </div>
+
+  <!-- 01 -->
+  <section>
+    <h2><span class="num">01</span>The 30-second story</h2>
+    <p class="lede">If you only read one section, read this.</p>
+    <div class="card">
+      <p style="margin:0">
+        <strong>Incident Copilot</strong> is a self-hosted web app that helps small
+        engineering teams handle outages and security problems. It watches your
+        logs, finds unusual activity, keeps a clean record of every incident,
+        and can scan public code repositories for security issues — all from one
+        dashboard. A backend written in <strong>Python</strong> powers the smarts;
+        a <strong>React</strong> frontend gives it a friendly face. It's built to run
+        on your own infrastructure, with no accounts and no user tracking.
+      </p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <h2><span class="num">02</span>The numbers at a glance</h2>
+    <p class="lede">A quick feel for the size of the project.</p>
+    <div class="chips">
+      <div class="chip"><div class="value">2</div><div class="label">Products in one app</div></div>
+      <div class="chip"><div class="value">6</div><div class="label">Core features</div></div>
+      <div class="chip"><div class="value">16</div><div class="label">Frontend pages</div></div>
+      <div class="chip"><div class="value">225</div><div class="label">Backend tests (all pass)</div></div>
+      <div class="chip"><div class="value">20</div><div class="label">Security scan rules</div></div>
+      <div class="chip"><div class="value">3</div><div class="label">Main services running</div></div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <h2><span class="num">03</span>What it does</h2>
+    <p class="lede">Six features, split across two products — an "Incident Manager" and a "Security Checker."</p>
+    <div class="grid2">
+      <div class="feat"><span class="tag blue">Incident Manager</span><h4>Incident tracking</h4><p>Every problem becomes a record: status, severity, timeline, root cause, and resolution. Perfect for demos and for real use.</p></div>
+      <div class="feat"><span class="tag blue">Incident Manager</span><h4>Log analysis &amp; grouping</h4><p>Massive log files are compressed into a handful of repeating patterns (via Drain3) so you can see what's actually happening.</p></div>
+      <div class="feat"><span class="tag blue">Incident Manager</span><h4>Anomaly detection</h4><p>Trained on your history, its statistical engine (PyOD) flags error rates and patterns that look unusual — often before a customer notices.</p></div>
+      <div class="feat"><span class="tag blue">Incident Manager</span><h4>Semantic log search</h4><p>Search logs in natural language ("why are checkouts failing?") using AI embeddings instead of exact keyword matches.</p></div>
+      <div class="feat"><span class="tag purple">Security Checker</span><h4>Repo security scanning</h4><p>Give it a public repo URL (or a zip file) and it hunts for secrets, risky code, and bad config — scored 0–100 with an A–F grade.</p></div>
+      <div class="feat"><span class="tag purple">Security Checker</span><h4>LLM deep review</h4><p>Optional AI review reads the trickiest findings in plain language and explains the risk and fix for each one.</p></div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <h2><span class="num">04</span>The two products</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Incident Manager <span style="color:var(--accent)">●</span></h3>
+        <p>The day-to-day home for on-call engineers:</p>
+        <ul>
+          <li>Dashboard with live KPIs — active incidents, critical alerts, time-to-resolve.</li>
+          <li>Searchable incident list with filters for status and severity.</li>
+          <li>Incident detail pages with a real timeline of status changes.</li>
+          <li>Log viewer, semantic search, and analytics built from your data.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Security Checker <span style="color:var(--success)">●</span></h3>
+        <p>A security sidekick for public repositories:</p>
+        <ul>
+          <li>Scan a repo or upload a zip without leaving the app.</li>
+          <li>Score and grade every scan (0–100, A–F) with sub-scores per category.</li>
+          <li>Crucial findings automatically become incident records.</li>
+          <li>History — compare past and present scans side by side.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <h2><span class="num">05</span>How it's built</h2>
+    <p class="lede">Three parts talk to each other: a frontend, a backend, and a database.</p>
+
+    <div class="arch">
+      <div class="box">
+        <div class="role">Frontend</div>
+        <div class="name">Next.js 14</div>
+        <p>React + TypeScript + Tailwind. Renders every page, styled with a clean, modern look.</p>
+      </div>
+      <div class="flow">⇄</div>
+      <div class="box">
+        <div class="role">Backend</div>
+        <div class="name">FastAPI (Python)</div>
+        <p>All the brains: API endpoints, log parsing, anomaly detection, embeddings, and the security scanner.</p>
+      </div>
+      <div class="flow">⇄</div>
+      <div class="box">
+        <div class="role">Database</div>
+        <div class="name">PostgreSQL 16</div>
+        <p>Stores incidents, logs, search vectors, scan results, and findings. Online and async — no ORM magic.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>The key ingredients</h3>
+      <div class="stack">
+        <span class="s"><span class="c c-front"></span>Next.js 14</span>
+        <span class="s"><span class="c c-front"></span>React</span>
+        <span class="s"><span class="c c-front"></span>TypeScript (strict)</span>
+        <span class="s"><span class="c c-front"></span>Tailwind CSS</span>
+        <span class="s"><span class="c c-front"></span>React Query</span>
+        <span class="s"><span class="c c-front"></span>recharts</span>
+        <span class="s"><span class="c c-back"></span>FastAPI</span>
+        <span class="s"><span class="c c-back"></span>Uvicorn</span>
+        <span class="s"><span class="c c-data"></span>PostgreSQL 16</span>
+        <span class="s"><span class="c c-data"></span>asyncpg</span>
+        <span class="s"><span class="c c-ai"></span>Drain3 (log parser)</span>
+        <span class="s"><span class="c c-ai"></span>PyOD (anomalies)</span>
+        <span class="s"><span class="c c-ai"></span>OpenAI embeddings + LLM</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section>
+    <h2><span class="num">06</span>How data flows</h2>
+    <div class="card">
+      <ol style="padding-left:20px; margin:0">
+        <li><strong>Logs come in</strong> (uploaded or streamed) and are stored in PostgreSQL.</li>
+        <li>The <strong>parser</strong> (Drain3) collapses thousands of look-alike log lines into a few "patterns," so anomalies are easier to spot.</li>
+        <li>The <strong>anomaly engine</strong> (PyOD) compares patterns against history and flags what looks unusual.</li>
+        <li>Log lines are turned into <strong>embeddings</strong>, letting you search by meaning, not just keywords.</li>
+        <li>Incidents, log events, and scan results are all served through the <strong>FastAPI</strong> API.</li>
+        <li>The <strong>frontend</strong> talks to that API and shows everything: dashboards, filters, timelines, and analytics.</li>
+      </ol>
+    </div>
+    <div class="callout">
+      <span class="title">The API is the seam:</span> every part of the UI talks to the real
+      backend over <span class="kbd">/api/v1/...</span> — nothing is hard-coded or faked on the
+      frontend. That's why realistic demo data makes the whole app behave like production.
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section>
+    <h2><span class="num">07</span>The pages you'll see</h2>
+    <p class="lede">Sixteen routes, grouped by product. The browser talks to the backend through a simple proxy.</p>
+    <div class="tbl">
+      <div class="row head"><div>Page</div><div>What it does</div></div>
+      <div class="row"><div class="r">/</div><div class="d">The landing page — a marketing-style front door with live product previews.</div></div>
+      <div class="row"><div class="r">/incidents/dashboard</div><div class="d">KPI cards, incident trend chart, service health, recent incidents.</div></div>
+      <div class="row"><div class="r">/incidents</div><div class="d">The incident list with status/severity filters.</div></div>
+      <div class="row"><div class="r">/incidents/[id]</div><div class="d">One incident's full story, including its timeline.</div></div>
+      <div class="row"><div class="r">/incidents/new</div><div class="d">A step-by-step wizard to declare a new incident.</div></div>
+      <div class="row"><div class="r">/incidents/logs</div><div class="d">Live log stream with pause, filter, and JSON export.</div></div>
+      <div class="row"><div class="r">/incidents/analytics</div><div class="d">Real computed insights: time-to-resolve, frequency, severity mix.</div></div>
+      <div class="row"><div class="r">/incidents/settings</div><div class="d">Appearance (theme), system status, and product preferences.</div></div>
+      <div class="row"><div class="r">/security</div><div class="d">Security dashboard — projects, scores, recent activity.</div></div>
+      <div class="row"><div class="r">/security/new</div><div class="d">Start a scan by repo URL or by uploading a zip.</div></div>
+      <div class="row"><div class="r">/security/projects</div><div class="d">Every scanned repository as a card.</div></div>
+      <div class="row"><div class="r">/security/projects/[id]</div><div class="d">All scans for one project, with a compare view.</div></div>
+      <div class="row"><div class="r">/security/findings</div><div class="d">Every finding from every scan, filterable.</div></div>
+      <div class="row"><div class="r">/security/history</div><div class="d">Scan history table.</div></div>
+      <div class="row"><div class="r">/security/scans/[id]</div><div class="d">A full scan report — score, grade, findings, LLM review.</div></div>
+      <div class="row"><div class="r">/security/settings</div><div class="d">Same settings page, themed for the security product.</div></div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section>
+    <h2><span class="num">08</span>The security scanner, up close</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>How a scan works</h3>
+        <ul>
+          <li>You submit a <strong>public repo URL</strong> (github.com, gitlab.com, bitbucket.org) or a zip file.</li>
+          <li>The scanner clones the repo and walks it safely (capped size and file count).</li>
+          <li><strong>20 built-in rules</strong> check for API keys, weak configs, risky code, and more.</li>
+          <li>Optional <strong>LLM deep review</strong> reads the most important files and explains each finding.</li>
+          <li>You get a <strong>score (0–100)</strong>, a <strong>grade (A–F)</strong>, sub-scores per category, and a summary.</li>
+          <li>Critical-and-high findings <strong>auto-create incidents</strong>, deduplicated across rescans.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Made to never fail hard</h3>
+        <ul>
+          <li>No OpenAI key? The scan still runs with <strong>rules only</strong>.</li>
+          <li>Big or weird repos get aborted safely instead of hanging.</li>
+          <li>Each host is allow-listed, so it only fetches from trusted sources.</li>
+          <li>Scan timeouts and crashes are reported cleanly as failed scans.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout sec" style="margin-top:12px">
+      <span class="title">Security + incidents share a thread:</span> a scan finding isn't just a
+      report — it can become an incident in the Incident Manager, so everything lives in one place.
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section>
+    <h2><span class="num">09</span>Look and feel</h2>
+    <div class="card">
+      <p>The interface was redesigned to look and feel like a professional SaaS product:</p>
+      <ul>
+        <li><strong>Clean light theme</strong> by default, with a <strong>dark mode</strong> you can switch to from the top bar or settings.</li>
+        <li><strong>Real data everywhere</strong> — every number is computed live from the API, never hard-coded.</li>
+        <li><strong>Gentle motion</strong>: animated heroes, floating backgrounds, subtle transitions — all with "reduced motion" support for accessibility.</li>
+        <li><strong>No gradients, no clutter</strong> — a disciplined color system instead.</li>
+        <li>Responsive: works on phones, tablets, and desktops.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section>
+    <h2><span class="num">10</span>Quality &amp; testing</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Backend (Python)</h3>
+        <ul>
+          <li><strong>225 automated tests</strong>, all passing — no database required.</li>
+          <li>Covers API routes, log parsing, anomaly logic, security URL validation, the rules engine, scoring, and scan flows.</li>
+          <li>Run with <span class="kbd">python -m pytest -q</span>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Frontend (TypeScript)</h3>
+        <ul>
+          <li>Strict TypeScript catches type errors at build time.</li>
+          <li>Validated with <span class="kbd">npx tsc --noEmit</span>, <span class="kbd">npm run lint</span>, and <span class="kbd">npm run build</span>.</li>
+          <li>Every page is checked for accessibility and responsive layout.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section>
+    <h2><span class="num">11</span>How to run it</h2>
+    <div class="card">
+      <h3>Three moving parts</h3>
+      <ul>
+        <li><strong>Database:</strong> PostgreSQL 16 — start with <span class="kbd">docker-compose up -d</span> or a local install.</li>
+        <li><strong>Backend:</strong> from <span class="kbd">backend/</span>, <span class="kbd">uvicorn app.main:app --reload</span> (runs on port 8000).</li>
+        <li><strong>Frontend:</strong> from <span class="kbd">frontend/</span>, <span class="kbd">npm run start</span> (runs on port 3000, proxies API calls to the backend).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Environment settings</h3>
+      <ul>
+        <li>Everything is configured by a <span class="kbd">backend/.env</span> file (copy it from <span class="kbd">.env.example</span>).</li>
+        <li>Required: the <span class="kbd">DATABASE_URL</span>. Optional: an <span class="kbd">OPENAI_API_KEY</span> for AI search and security deep review.</li>
+        <li>Never commit .env files or keys.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Demo data</h3>
+      <ul>
+        <li>A script loads <strong>19 realistic incidents</strong> through the real API so dashboards look alive: <span class="kbd">python mock-data/load_mock_data.py</span>.</li>
+        <li>See <span class="kbd">mock-data/explain-the-data.html</span> for how to talk people through that data.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section>
+    <h2><span class="num">12</span>Deployment &amp; limits</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3>Running in production</h3>
+        <ul>
+          <li>A <span class="kbd">Dockerfile</span> plus <span class="kbd">docker-compose.yml</span> for the backend and database.</li>
+          <li>A <span class="kbd">render.yaml</span> blueprint for one-click hosting on Render (backend + managed PostgreSQL).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Know the limits</h3>
+        <ul>
+          <li><strong>No user accounts or authentication.</strong> Anyone who reaches the server can use it.</li>
+          <li>So: don't expose the API directly to the internet — put an access layer in front.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="title">Bottom line:</span> a serious, self-hosted incident + security
+      platform for small teams — real AI features, real data, real tests, and a clean
+      interface, all in one repo.
+    </div>
+  </section>
+
+  <footer>
+    Incident Copilot — project walkthrough. Built with FastAPI · Next.js 14 · PostgreSQL 16.
+  </footer>
+
+</div>
+</body>
+</html>

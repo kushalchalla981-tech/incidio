@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "frontend/settings.html",
+  "entry": "frontend/settings.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-06-04T18:34:57.328Z",
+  "updatedAt": "2026-06-04T18:34:57.328Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

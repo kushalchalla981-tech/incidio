@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "logs.html",
+  "entry": "logs.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-06-04T18:10:04.619Z",
+  "updatedAt": "2026-06-04T18:10:04.619Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

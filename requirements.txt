@@ -1,0 +1,10 @@
+# Backend Python dependencies live in backend/requirements.txt.
+#
+# This root file intentionally lists no packages — the dependency list here
+# was stale and is no longer used by any tooling.
+#
+# Install backend dependencies with:
+#   pip install -r backend/requirements.txt
+#
+# Render deploys from the backend/ root directory (see render.yaml) and
+# installs from backend/requirements.txt there.

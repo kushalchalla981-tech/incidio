@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Logs — AI Incident Copilot</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .log-message { font-family: var(--font-mono); font-size: 13px; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .log-service { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+    .log-badge { display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .log-error-badge { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+    .log-warn-badge { background: color-mix(in oklab, var(--warn) 14%, transparent); color: var(--warn); }
+    .log-info-badge { background: var(--accent-soft); color: var(--accent); }
+    .log-debug-badge { background: var(--fg-soft); color: var(--muted); }
+    .log-head { display: flex; align-items: center; gap: var(--gap-sm); flex-wrap: wrap; }
+    .log-level-bar { display: flex; gap: 2px; height: 4px; margin-bottom: var(--space-5); border-radius: 2px; overflow: hidden; position: relative; }
+    .log-level-bar .dot { flex: 1; transition: opacity 0.3s ease; border-radius: 2px; }
+    .log-level-bar .dot.error { background: var(--danger); }
+    .log-level-bar .dot.warn { background: var(--warn); }
+    .log-level-bar .dot.info { background: var(--accent); }
+    .log-level-bar .dot.debug { background: var(--muted); }
+    .log-entry { cursor: pointer; transition: background 0.2s ease, margin 0.2s ease, padding 0.2s ease; }
+    .log-entry.active { background: var(--accent-soft); margin: 0 -12px; padding: 10px 12px; border-radius: var(--radius); }
+    .log-detail-expand { display: none; padding: 10px 12px; background: var(--fg-soft); border-radius: var(--radius); margin-top: 4px; font-family: var(--font-mono); font-size: 12px; color: var(--fg-2); white-space: pre-wrap; }
+    .log-entry.expanded .log-detail-expand { display: block; }
+    .log-stream-container { max-height: 65vh; overflow-y: auto; position: relative; }
+    .log-stream-container::-webkit-scrollbar { width: 4px; }
+    .log-stream-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .new-log-flash { animation: logFlash 2s ease-out; }
+    @keyframes logFlash {
+      0% { background: color-mix(in oklab, var(--accent) 8%, transparent); }
+      100% { background: transparent; }
+    }
+  </style>
+</head>
+<body>
+<div class="gradient-mesh"></div>
+<div class="ambient-bg">
+  <div class="ambient-orb ambient-orb-2" style="width:400px;height:400px;bottom:-5%;left:-10%"></div>
+  <div class="ambient-orb ambient-orb-1" style="width:300px;height:300px;top:-5%;right:5%"></div>
+</div>
+<div class="sparkle-overlay" id="sparkleOverlay"></div>
+<div class="cursor-glow-wrap"><div class="cursor-glow" id="cursorGlow"></div></div>
+<div class="data-stream-v2" id="dataStream"></div>
+<div class="app-shell" style="position:relative;z-index:2">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><div class="sidebar-brand-icon">IC</div><span class="sidebar-brand-text">Incident Copilot</span></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="sidebar-link-label">Overview</span></a>
+      <a href="dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg><span class="sidebar-link-label">Dashboard</span></a>
+      <a href="incidents.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/><path d="M19 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="15" r="1"/></svg><span class="sidebar-link-label">Incidents</span></a>
+      <a href="logs.html" class="sidebar-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h12"/></svg><span class="sidebar-link-label">Logs</span></a>
+      <a href="analytics.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16"/><path d="M6 16v-4"/><path d="M10 16V8"/><path d="M14 16V4"/><path d="M18 16v-6"/></svg><span class="sidebar-link-label">Analytics</span></a>
+      <a href="settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="sidebar-link-label">Settings</span></a>
+    </nav>
+    <div class="sidebar-footer"><button class="sidebar-toggle" id="sidebarToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+  </aside>
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Search incidents, logs..." /></div>
+      <div class="topbar-section">
+        <div style="position:relative">
+          <button class="topbar-btn" id="notifToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/></svg></div><div><div class="notif-text"><strong>CRIT-2210</strong> escalated</div><div class="notif-time">2 min ago</div></div></div></div>
+        </div>
+        <button class="topbar-avatar magnetic-btn" id="profileToggle">AK</button>
+      </div>
+    </header>
+    <div class="content-area">
+      <div class="page-header anim-fade slide-group">
+        <div class="page-header-left"><h1><span class="text-gradient-anim">Log Stream</span></h1><span class="badge badge-info pulse-ring" style="font-size:11px"><span class="live-dot" style="margin-right:4px"></span>Live</span></div>
+        <div class="page-header-right">
+          <button class="btn btn-secondary btn-sm magnetic-btn ripple-btn" id="pauseBtn">Pause</button>
+          <button class="btn btn-primary btn-sm magnetic-btn ripple-btn pulse-ring-success">Export</button>
+        </div>
+      </div>
+
+      <div class="log-level-bar slide-group" id="logLevelBar">
+        <div class="dot error" style="flex:0.8"></div>
+        <div class="dot error" style="flex:1.2"></div>
+        <div class="dot warn" style="flex:1.5"></div>
+        <div class="dot info" style="flex:3"></div>
+        <div class="dot info" style="flex:2"></div>
+        <div class="dot error" style="flex:0.6"></div>
+        <div class="dot warn" style="flex:0.9"></div>
+        <div class="dot info" style="flex:4"></div>
+        <div class="dot debug" style="flex:2"></div>
+        <div class="dot info" style="flex:3"></div>
+        <div class="dot warn" style="flex:1.1"></div>
+        <div class="dot error" style="flex:0.7"></div>
+        <div class="dot info" style="flex:3.5"></div>
+        <div class="dot debug" style="flex:1.5"></div>
+        <div class="dot info" style="flex:2.5"></div>
+        <div class="dot error" style="flex:1"></div>
+        <div class="dot warn" style="flex:0.8"></div>
+        <div class="dot info" style="flex:3"></div>
+      </div>
+
+      <div class="filter-bar anim-fade-up">
+        <select><option>All Levels</option><option>ERROR</option><option>WARN</option><option>INFO</option><option>DEBUG</option></select>
+        <select><option>All Services</option><option>api-gw-prod</option><option>user-svc</option><option>db-primary</option><option>billing-svc</option><option>redis-cluster</option></select>
+        <select><option>Last hour</option><option>Last 6 hours</option><option>Last 24 hours</option><option>Custom</option></select>
+        <span style="flex:1"></span>
+        <span class="meta" id="logCount" style="font-size:12px">~142 entries</span>
+      </div>
+
+      <div class="glass-card-static slide-group tilt-card glass-shine" style="padding:var(--space-4)" data-tilt>
+        <div class="log-stream-container" id="logStream">
+          <div class="log-entry expanded anim-fade-up stagger-1 new-log-flash" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:47:23.142</span><span class="log-level ERROR">ERROR</span><span class="log-service">api-gw-prod</span><span class="log-badge log-error-badge">P1</span></div>
+            <div class="log-message">upstream timed out (110: Connection timed out) while connecting to upstream, client: 10.0.1.45, server: api.example.com</div>
+            <div class="log-detail-expand">{"request_id":"req-a7f3b2","latency_ms":30200,"upstream":"dns-resolver:53","retry":2}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-2" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:47:22.891</span><span class="log-level WARN">WARN</span><span class="log-service">api-gw-prod</span></div>
+            <div class="log-message">upstream response time exceeded threshold (25000ms) for /v2/checkout — flags=slow_upstream</div>
+            <div class="log-detail-expand">{"request_id":"req-a7f3b2","threshold_ms":5000,"p95_ms":28700}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-3" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:47:22.401</span><span class="log-level INFO">INFO</span><span class="log-service">api-gw-prod</span></div>
+            <div class="log-message">GET /v2/checkout — 200 OK — 342ms — client: 10.0.1.45</div>
+            <div class="log-detail-expand">{"request_id":"req-a7f3b1","user_agent":"Mozilla/5.0 Chrome/125.0","region":"us-east-1"}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-4" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:47:18.552</span><span class="log-level ERROR">ERROR</span><span class="log-service">db-primary</span><span class="log-badge log-error-badge">P0</span></div>
+            <div class="log-message">pq: connection pool exhausted — 198/200 connections in use — query: SELECT * FROM orders WHERE status = 'pending'</div>
+            <div class="log-detail-expand">{"pid":23421,"backend_start":"2024-06-04T09:12:00Z","wait_event":"WALWrite","state":"active"}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-5" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:47:12.003</span><span class="log-level INFO">INFO</span><span class="log-service">user-svc</span></div>
+            <div class="log-message">User session created — user_id=u_9f82a, method=oauth, provider=github</div>
+            <div class="log-detail-expand">{"session_id":"sess_b7d2f","expires":"2024-06-05T09:47:12Z"}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-6" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:47:08.441</span><span class="log-level WARN">WARN</span><span class="log-service">user-svc</span></div>
+            <div class="log-message">High error rate detected: 14.2% in last 5 min — threshold: 10% — canary: v2.3.1 (15% traffic)</div>
+            <div class="log-detail-expand">{"canary_version":"v2.3.1","error_rate":{"canary":"23.4%","stable":"4.1%"},"suggested_action":"rollback"}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-7" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:46:58.120</span><span class="log-level ERROR">ERROR</span><span class="log-service">dns-resolver</span><span class="log-badge log-error-badge">P2</span></div>
+            <div class="log-message">DNS query timeout for host: upstream-billing.internal — resolver: 10.0.0.53 — query_type: A</div>
+            <div class="log-detail-expand">{"dns_server":"10.0.0.53","timeout_ms":5000,"retry_count":3,"last_error":"no_response"}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-8" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:46:45.300</span><span class="log-level INFO">INFO</span><span class="log-service">billing-svc</span></div>
+            <div class="log-message">Payment processed — invoice=inv_78d2a — amount=$247.00 — method=stripe — status=settled</div>
+            <div class="log-detail-expand">{"stripe_pi":"pi_3P7k2V","settlement_latency_ms":220,"processor":"stripe"}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-9" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:46:30.001</span><span class="log-level DEBUG">DEBUG</span><span class="log-service">redis-cluster</span></div>
+            <div class="log-message">Cluster node 10.0.2.10:6379 — replication lag: 142ms — backlog queue: 0 pending</div>
+            <div class="log-detail-expand">{"node_id":"c7b3f","role":"replica","master":"10.0.2.11:6379","lag_ms":142}</div>
+          </div>
+          <div class="log-entry anim-fade-up stagger-10" onclick="this.classList.toggle('expanded')">
+            <div class="log-head"><span class="log-time meta">09:46:15.889</span><span class="log-level INFO">INFO</span><span class="log-service">notif-svc</span></div>
+            <div class="log-message">Alert dispatched — channel=pagerduty — target=sre-team — incident=CRIT-2210</div>
+            <div class="log-detail-expand">{"pd_dedup_key":"a7f3b2c1","urgency":"high","escalation_policy":"SRE-Primary"}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="profile-panel" id="profilePanel">
+  <div class="profile-panel-header"><h3>Profile</h3><button class="profile-close" id="profileClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div class="profile-info"><div class="profile-avatar-lg">AK</div><div class="profile-name">Alex Kovacs</div><div class="profile-email">alex@example.com</div></div>
+  <div class="profile-nav">
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Account</a>
+    <a href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Settings</a>
+    <a href="#" class="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  document.getElementById('sidebarToggle').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('sidebar').classList.toggle('collapsed'); });
+  const pf = document.getElementById('profileToggle'), pp = document.getElementById('profilePanel'), ov = document.getElementById('overlay');
+  function oP(){ pp.classList.add('open'); ov.classList.add('open'); }
+  function cP(){ pp.classList.remove('open'); ov.classList.remove('open'); }
+  pf.addEventListener('click', oP);
+  document.getElementById('profileClose').addEventListener('click', cP);
+  ov.addEventListener('click', cP);
+  const nt = document.getElementById('notifToggle'), nd = document.getElementById('notifDropdown');
+  nt.addEventListener('click', function(e){ e.stopPropagation(); nd.classList.toggle('open'); });
+  document.addEventListener('click', function(){ nd.classList.remove('open'); });
+  nd.addEventListener('click', function(e){ e.stopPropagation(); });
+
+  // Cursor glow
+  const cg = document.getElementById('cursorGlow');
+  if(cg) document.addEventListener('mousemove', function(e){ cg.style.left = e.clientX + 'px'; cg.style.top = e.clientY + 'px'; });
+
+  // Data stream lines
+  const ds = document.getElementById('dataStream');
+  if(ds){
+    for(let i=0;i<15;i++){
+      const l = document.createElement('div'); l.className = 'stream-line-v2';
+      l.style.left = Math.random() * 100 + '%';
+      l.style.height = (200 + Math.random() * 400) + 'px';
+      l.style.animationDuration = (6 + Math.random() * 8) + 's';
+      l.style.animationDelay = (Math.random() * 5) + 's';
+      l.style.opacity = 0.3 + Math.random() * 0.4;
+      ds.appendChild(l);
+    }
+  }
+
+  // Ripple
+  document.querySelectorAll('.ripple-btn').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      const rect = this.getBoundingClientRect();
+      const r = document.createElement('span'); r.className = 'ripple';
+      const size = Math.max(rect.width, rect.height);
+      r.style.width = r.style.height = size + 'px';
+      r.style.left = (e.clientX - rect.left - size/2) + 'px';
+      r.style.top = (e.clientY - rect.top - size/2) + 'px';
+      this.appendChild(r); setTimeout(() => r.remove(), 600);
+    });
+  });
+
+  // Live log streaming simulation
+  let paused = false;
+  const pauseBtn = document.getElementById('pauseBtn');
+  const logStream = document.getElementById('logStream');
+  const logCount = document.getElementById('logCount');
+
+  const logMessages = [
+    {level:'INFO', service:'api-gw-prod', msg:'GET /v2/users — 200 OK — 124ms', detail:'{"request_id":"req_'+Date.now()+'","cache":"miss"}'},
+    {level:'INFO', service:'user-svc', msg:'Auth token refreshed — user_id=u_9f82a', detail:'{"token_type":"refresh","expires_in":3600}'},
+    {level:'WARN', service:'db-primary', msg:'Slow query detected: 4.2s — SELECT * FROM audit_logs', detail:'{"query_time_ms":4200,"seq_scan":true}'},
+    {level:'INFO', service:'notif-svc', msg:'Slack notification delivered — channel=#sre-alerts', detail:'{"channel":"#sre-alerts","latency_ms":340}'},
+    {level:'ERROR', service:'api-gw-prod', msg:'502 Bad Gateway — upstream: billing-svc:8080', detail:'{"upstream":"billing-svc:8080","status":502}'},
+    {level:'DEBUG', service:'redis-cluster', msg:'Replication backlog — 0 pending, lag: 88ms', detail:'{"lag_ms":88,"backlog_size":0}'},
+    {level:'INFO', service:'billing-svc', msg:'Invoice paid — inv_92d1a — $189.00', detail:'{"stripe_id":"pi_9X2k8","method":"card"}'},
+    {level:'WARN', service:'user-svc', msg:'Rate limit approaching — 940/1000 req/min', detail:'{"current_rpm":940,"limit":1000}'},
+    {level:'INFO', service:'api-gw-prod', msg:'POST /v2/checkout — 201 Created — 2.1s', detail:'{"cart_size":3,"payment_method":"stripe"}'},
+    {level:'ERROR', service:'dns-resolver', msg:'Query timeout — host: monitoring.internal', detail:'{"timeout_ms":5000,"retry":1}'},
+  ];
+
+  let logIdx = 0;
+  let count = 142;
+
+  pauseBtn.addEventListener('click', () => {
+    paused = !paused;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    pauseBtn.classList.toggle('btn-primary', paused);
+    pauseBtn.classList.toggle('btn-secondary', !paused);
+  });
+
+  function addLog(){
+    if(paused) return;
+    const entry = logMessages[logIdx % logMessages.length];
+    logIdx++;
+    const now = new Date();
+    const time = now.toTimeString().slice(0,8) + '.' + String(now.getMilliseconds()).padStart(3,'0');
+
+    const levels = {ERROR:'error',WARN:'warn',INFO:'info',DEBUG:'debug'};
+    const badges = {ERROR:'log-error-badge',WARN:'log-warn-badge',INFO:'log-info-badge',DEBUG:'log-debug-badge'};
+
+    const div = document.createElement('div');
+    div.className = 'log-entry new-log-flash';
+    div.innerHTML = `<div class="log-head"><span class="log-time meta">${time}</span><span class="log-level ${entry.level}">${entry.level}</span><span class="log-service">${entry.service}</span>${entry.level==='ERROR'||entry.level==='WARN'?`<span class="log-badge ${badges[entry.level]}">${entry.level=== 'ERROR' ? 'P1' : 'Watch'}</span>`:''}</div><div class="log-message">${entry.msg}</div><div class="log-detail-expand">${entry.detail}</div>`;
+    div.onclick = function(){ this.classList.toggle('expanded'); };
+    logStream.insertBefore(div, logStream.firstChild);
+    count++;
+    if(logCount) logCount.textContent = `~${count} entries`;
+    logStream.scrollTop = 0;
+  }
+
+  // Add a new log every 4-8 seconds
+  function scheduleLog(){
+    const delay = 3000 + Math.random() * 5000;
+    setTimeout(() => { addLog(); scheduleLog(); }, delay);
+  }
+  scheduleLog();
+
+  // 3D Tilt
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      this.style.transform = `perspective(600px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateZ(8px)`;
+    });
+    card.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+
+  document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width/2) * 0.2;
+      const y = (e.clientY - r.top - r.height/2) * 0.2;
+      this.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    btn.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+})();
+</script>
+</body>
+</html>

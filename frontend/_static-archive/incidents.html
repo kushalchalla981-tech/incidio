@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Incidents — AI Incident Copilot</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .incident-card-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap-md); margin-top: var(--gap-sm); }
+    .detail-field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-family: var(--font-mono); }
+    .detail-field p { font-size: 13px; margin: 4px 0 0; color: var(--fg-2); }
+    .detail-field pre { font-size: 12px; margin: 4px 0 0; color: var(--fg-2); font-family: var(--font-mono); white-space: pre-wrap; background: var(--fg-soft); padding: 8px; border-radius: 6px; }
+    .sev-distribution { display: flex; gap: 4px; margin-bottom: var(--space-5); height: 8px; border-radius: 4px; overflow: hidden; }
+    .sev-distribution .seg { transition: flex 0.6s ease; position: relative; }
+    .sev-distribution .seg.critical { background: linear-gradient(90deg, var(--danger), color-mix(in oklab, var(--danger) 70%, var(--warn))); }
+    .sev-distribution .seg.high { background: var(--warn); }
+    .sev-distribution .seg.medium { background: var(--accent); }
+    .sev-distribution .seg.low { background: var(--muted); }
+    .incident-card { position: relative; overflow: hidden; }
+    .incident-card .card-glow-line { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 0 3px 3px 0; transition: opacity 0.3s ease; }
+    .incident-card:hover .card-glow-line { opacity: 1; }
+    @media (max-width: 720px) { .incident-card-detail-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="gradient-mesh"></div>
+<div class="ambient-bg">
+  <div class="ambient-orb ambient-orb-1"></div>
+  <div class="ambient-orb ambient-orb-3"></div>
+</div>
+<div class="sparkle-overlay" id="sparkleOverlay"></div>
+<div class="cursor-glow-wrap"><div class="cursor-glow" id="cursorGlow"></div></div>
+<canvas id="particles-canvas"></canvas>
+<div class="app-shell" style="position:relative;z-index:2">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><div class="sidebar-brand-icon">IC</div><span class="sidebar-brand-text">Incident Copilot</span></div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="sidebar-link-label">Overview</span></a>
+      <a href="dashboard.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg><span class="sidebar-link-label">Dashboard</span></a>
+      <a href="incidents.html" class="sidebar-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/><path d="M19 17v2a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="15" r="1"/></svg><span class="sidebar-link-label">Incidents</span></a>
+      <a href="logs.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h12"/></svg><span class="sidebar-link-label">Logs</span></a>
+      <a href="analytics.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16"/><path d="M6 16v-4"/><path d="M10 16V8"/><path d="M14 16V4"/><path d="M18 16v-6"/></svg><span class="sidebar-link-label">Analytics</span></a>
+      <a href="settings.html" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span class="sidebar-link-label">Settings</span></a>
+    </nav>
+    <div class="sidebar-footer"><button class="sidebar-toggle" id="sidebarToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 18l-6-6 6-6"/></svg></button></div>
+  </aside>
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input type="text" placeholder="Search incidents, logs..." /></div>
+      <div class="topbar-section">
+        <div style="position:relative">
+          <button class="topbar-btn" id="notifToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge-dot"></span></button>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a3 3 0 0 1 3 3c0 2-1.5 3-3 4.5C10.5 9 9 8 9 6a3 3 0 0 1 3-3z"/></svg></div><div><div class="notif-text"><strong>CRIT-2210</strong> escalated</div><div class="notif-time">2 min ago</div></div></div>
+            <div class="notif-item"><div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div><div class="notif-text"><strong>INC-118</strong> auto-resolved</div><div class="notif-time">14 min ago</div></div></div></div>
+        </div>
+        <button class="topbar-avatar magnetic-btn" id="profileToggle">AK</button>
+      </div>
+    </header>
+    <div class="content-area">
+      <div class="page-header anim-fade slide-group">
+        <div class="page-header-left"><h1><span class="text-gradient-anim">Incidents</span></h1><span class="badge badge-danger pulse-ring-danger">3 Active</span></div>
+        <div class="page-header-right">
+          <button class="btn btn-primary btn-sm magnetic-btn ripple-btn pulse-ring-success">New Incident</button>
+        </div>
+      </div>
+
+      <div class="sev-distribution slide-group">
+        <div class="seg critical" style="flex:1.2" title="2 Critical"></div>
+        <div class="seg high" style="flex:2" title="3 High"></div>
+        <div class="seg medium" style="flex:1.5" title="2 Medium"></div>
+        <div class="seg low" style="flex:3" title="4 Low"></div>
+      </div>
+
+      <div class="filter-bar anim-fade-up">
+        <select><option>All Severities</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
+        <select><option>All Statuses</option><option>Open</option><option>Investigating</option><option>Resolved</option><option>Closed</option></select>
+        <select><option>All Services</option><option>api-gw-prod</option><option>user-svc</option><option>db-primary</option></select>
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost btn-sm">Clear Filters</button>
+      </div>
+
+      <div class="stack slide-group">
+        <div class="incident-card anim-fade-up stagger-1 tilt-card glass-shine border-glow-hover" data-tilt onclick="this.classList.toggle('expanded')">
+          <div class="card-glow-line" style="background:var(--danger);opacity:0.6"></div>
+          <div class="incident-card-top"><div><div class="incident-card-title"><span class="glow-dot danger" style="width:7px;height:7px;margin-right:8px;vertical-align:middle;animation:glowPulse 1s ease-in-out infinite"></span>CRIT-2210 — API gateway timeout</div><div class="incident-card-meta"><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 2h 14m</span><span>api-gw-prod</span><span class="badge badge-danger">Critical</span><span class="badge badge-danger">Open</span></div></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="incident-card-body">API gateway experiencing timeout errors affecting 23% of traffic. Paging SRE. Root cause: upstream DNS resolution failure.</div>
+          <div class="incident-card-detail"><div class="incident-card-detail-grid"><div class="detail-field"><label>Detected</label><p>2024-06-04 09:47:23 UTC</p></div><div class="detail-field"><label>Service</label><p>api-gw-prod (us-east-1)</p></div><div class="detail-field"><label>AI Analysis</label><p>Correlated with DNS resolver spike at 09:46:58. 87% confidence.</p></div><div class="detail-field"><label>Suggested Action</label><pre>kubectl rollout restart -n api-gw deployment/api-gw-v2\nhelm rollback dns-resolver 3</pre></div></div></div>
+        </div>
+        <div class="incident-card anim-fade-up stagger-2 tilt-card glass-shine border-glow-hover" data-tilt onclick="this.classList.toggle('expanded')">
+          <div class="card-glow-line" style="background:var(--danger);opacity:0.6"></div>
+          <div class="incident-card-top"><div><div class="incident-card-title"><span class="glow-dot danger" style="width:7px;height:7px;margin-right:8px;vertical-align:middle;animation:glowPulse 1s ease-in-out infinite"></span>CRIT-2209 — DB connection pool exhausted</div><div class="incident-card-meta"><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 34m</span><span>db-primary</span><span class="badge badge-danger">Critical</span><span class="badge badge-warn">Investigating</span></div></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="incident-card-body">Database primary connection pool at 98% capacity. Active connections surged due to unoptimized query deployment.</div>
+          <div class="incident-card-detail"><div class="incident-card-detail-grid"><div class="detail-field"><label>Detected</label><p>2024-06-04 09:12:05 UTC</p></div><div class="detail-field"><label>Connections</label><p>198/200 active</p></div><div class="detail-field"><label>AI Analysis</label><p>New query pattern deployed at 09:08:00. Missing index on orders.created_at.</p></div><div class="detail-field"><label>Suggested Action</label><pre>CREATE INDEX CONCURRENTLY idx_orders_created\nON orders(created_at);\n -- estimated completion: 45s</pre></div></div></div>
+        </div>
+        <div class="incident-card anim-fade-up stagger-3 tilt-card glass-shine border-glow-hover" data-tilt onclick="this.classList.toggle('expanded')">
+          <div class="card-glow-line" style="background:var(--warn);opacity:0.6"></div>
+          <div class="incident-card-top"><div><div class="incident-card-title"><span class="glow-dot warn" style="width:7px;height:7px;margin-right:8px;vertical-align:middle"></span>INC-118 — Elevated error rate on user service</div><div class="incident-card-meta"><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 1h 17m</span><span>user-svc</span><span class="badge badge-warn">High</span><span class="badge badge-warn">Investigating</span></div></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="incident-card-body">Error rate increased from 5.2% to 12.8%. Auto-investigating with AI. Potential correlation with canary release v2.3.1.</div>
+          <div class="incident-card-detail"><div class="incident-card-detail-grid"><div class="detail-field"><label>Detected</label><p>2024-06-04 08:30:12 UTC</p></div><div class="detail-field"><label>Error Rate</label><p>12.8% (baseline: 5.2%)</p></div><div class="detail-field"><label>AI Analysis</label><p>v2.3.1 canary (15% traffic) shows 23% error rate vs 4.1% on stable. Rollback recommended.</p></div><div class="detail-field"><label>Suggested Action</label><pre>kubectl rollout undo deployment/user-svc\n -- wait for stabilization</pre></div></div></div>
+        </div>
+        <div class="incident-card anim-fade-up stagger-4 tilt-card glass-shine border-glow-hover" data-tilt onclick="this.classList.toggle('expanded')">
+          <div class="card-glow-line" style="background:var(--success);opacity:0.6"></div>
+          <div class="incident-card-top"><div><div class="incident-card-title"><span class="glow-dot success" style="width:7px;height:7px;margin-right:8px;vertical-align:middle"></span>INC-117 — Canary rollback (billing service)</div><div class="incident-card-meta"><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 18m</span><span>billing-svc</span><span class="badge badge-info">Medium</span><span class="badge badge-success">Resolved</span></div></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="incident-card-body">Canary rollback completed for billing-svc after detecting elevated latency in payment processing pipeline.</div>
+          <div class="incident-card-detail"><div class="incident-card-detail-grid"><div class="detail-field"><label>Detected</label><p>2024-06-04 07:55:00 UTC</p></div><div class="detail-field"><label>Resolved</label><p>2024-06-04 08:13:00 UTC</p></div><div class="detail-field"><label>Root Cause</label><p>New payment SDK introduced 340ms latency per transaction vs 85ms baseline.</p></div></div></div>
+        </div>
+        <div class="incident-card anim-fade-up stagger-5 tilt-card glass-shine border-glow-hover" data-tilt onclick="this.classList.toggle('expanded')">
+          <div class="card-glow-line" style="background:var(--muted);opacity:0.6"></div>
+          <div class="incident-card-top"><div><div class="incident-card-title"><span class="glow-dot success" style="width:7px;height:7px;margin-right:8px;vertical-align:middle"></span>INC-116 — Redis cluster failover</div><div class="incident-card-meta"><span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 12m</span><span>redis-cluster</span><span class="badge badge-neutral">Low</span><span class="badge badge-success">Resolved</span></div></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="incident-card-body">Redis cluster completed automated failover from primary-1 to primary-2. No data loss. Minor latency spike during transition.</div>
+          <div class="incident-card-detail"><div class="incident-card-detail-grid"><div class="detail-field"><label>Detected</label><p>2024-06-04 06:20:00 UTC</p></div><div class="detail-field"><label>Failover Time</label><p>4.2s</p></div><div class="detail-field"><label>Impact</label><p>Cache hit ratio dropped from 94% to 88% for 2 minutes. Fully recovered.</p></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="profile-panel" id="profilePanel">
+  <div class="profile-panel-header"><h3>Profile</h3><button class="profile-close" id="profileClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div class="profile-info"><div class="profile-avatar-lg">AK</div><div class="profile-name">Alex Kovacs</div><div class="profile-email">alex@example.com</div></div>
+  <div class="profile-nav">
+    <a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Account</a>
+    <a href="settings.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>Settings</a>
+    <a href="#" class="logout"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  document.getElementById('sidebarToggle').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('sidebar').classList.toggle('collapsed'); });
+  const pf = document.getElementById('profileToggle'), pp = document.getElementById('profilePanel'), ov = document.getElementById('overlay');
+  function oP(){ pp.classList.add('open'); ov.classList.add('open'); }
+  function cP(){ pp.classList.remove('open'); ov.classList.remove('open'); }
+  pf.addEventListener('click', oP);
+  document.getElementById('profileClose').addEventListener('click', cP);
+  ov.addEventListener('click', cP);
+  const nt = document.getElementById('notifToggle'), nd = document.getElementById('notifDropdown');
+  nt.addEventListener('click', function(e){ e.stopPropagation(); nd.classList.toggle('open'); });
+  document.addEventListener('click', function(){ nd.classList.remove('open'); });
+  nd.addEventListener('click', function(e){ e.stopPropagation(); });
+
+  // Cursor glow
+  const cg = document.getElementById('cursorGlow');
+  if(cg) document.addEventListener('mousemove', function(e){ cg.style.left = e.clientX + 'px'; cg.style.top = e.clientY + 'px'; });
+
+  // Ripple
+  document.querySelectorAll('.ripple-btn').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      const rect = this.getBoundingClientRect();
+      const r = document.createElement('span'); r.className = 'ripple';
+      const size = Math.max(rect.width, rect.height);
+      r.style.width = r.style.height = size + 'px';
+      r.style.left = (e.clientX - rect.left - size/2) + 'px';
+      r.style.top = (e.clientY - rect.top - size/2) + 'px';
+      this.appendChild(r);
+      setTimeout(() => r.remove(), 600);
+    });
+  });
+
+  document.querySelectorAll('[data-tilt]').forEach(card => {
+    card.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5;
+      const y = (e.clientY - r.top) / r.height - 0.5;
+      this.style.transform = `perspective(600px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateZ(8px)`;
+    });
+    card.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+
+  document.querySelectorAll('.magnetic-btn').forEach(btn => {
+    btn.addEventListener('mousemove', function(e){
+      const r = this.getBoundingClientRect();
+      const x = (e.clientX - r.left - r.width/2) * 0.2;
+      const y = (e.clientY - r.top - r.height/2) * 0.2;
+      this.style.transform = `translate(${x}px, ${y}px)`;
+    });
+    btn.addEventListener('mouseleave', function(){ this.style.transform = ''; });
+  });
+})();
+
+// Particles
+(function(){
+  const canvas = document.getElementById('particles-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [];
+  function resize(){ w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const count = Math.min(40, Math.floor(w*h/25000));
+  for(let i=0;i<count;i++) particles.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,r:Math.random()*2+0.5,a:Math.random()*0.25+0.05});
+  function draw(){
+    ctx.clearRect(0,0,w,h);
+    particles.forEach((p,i)=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>w)p.vx*=-1; if(p.y<0||p.y>h)p.vy*=-1;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(79,140,255,${p.a})`; ctx.fill();
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[j].x-p.x,dy=particles[j].y-p.y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<120){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(79,140,255,${0.04*(1-dist/120)})`;ctx.stroke();}
+      }
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

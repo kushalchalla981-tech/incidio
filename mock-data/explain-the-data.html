@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Explaining the Demo Data — Incident Manager</title>
+<style>
+  :root {
+    --page-bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --border: #e3e8ef;
+    --text: #101828;
+    --text-2: #475467;
+    --text-3: #667085;
+    --accent: #2f5fd0;
+    --critical: #d93d4b;
+    --high: #d97706;
+    --medium: #2f5fd0;
+    --low: #667085;
+    --success: #0e9f6e;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--text);
+    font-family: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 24px 20px 72px; }
+
+  /* Header */
+  .hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 34px 28px;
+    margin-top: 24px;
+  }
+  .hero .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef3fe;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+  }
+  .hero h1 { font-size: 26px; line-height: 1.2; margin: 16px 0 8px; letter-spacing: -.02em; }
+  .hero p { margin: 0; color: var(--text-2); max-width: 640px; }
+  .hero .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+
+  /* Sections */
+  section { margin-top: 34px; }
+  h2 {
+    font-size: 19px;
+    letter-spacing: -.01em;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  h2 .num {
+    display: inline-grid;
+    place-items: center;
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+  .lede { color: var(--text-2); margin: 0 0 18px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 12px;
+  }
+
+  .callout {
+    background: #eef3fe;
+    border: 1px solid #d6e2fb;
+    border-radius: 12px;
+    padding: 16px 20px;
+    color: #1d3d94;
+  }
+  .callout .title { font-weight: 700; }
+
+  /* Number chips */
+  .chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .chip .value { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+  .chip .label { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  /* Grids for status/severity */
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+
+  .b {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid transparent;
+  }
+  .b .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .b-sev-critical { background: #fdebec; color: var(--critical); }
+  .b-sev-high     { background: #fdf0e2; color: var(--high); }
+  .b-sev-medium   { background: #e9effd; color: var(--medium); }
+  .b-sev-low      { background: #eef0f3; color: var(--low); }
+  .b-st-open       { background: #e9effd; color: var(--medium); }
+  .b-st-invest     { background: #fdf0e2; color: var(--high); }
+  .b-st-resolved   { background: #e4f5ef; color: var(--success); }
+  .b-st-closed     { background: #eef0f3; color: var(--low); }
+
+  /* Table */
+  .tbl {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .tbl .row {
+    display: grid;
+    grid-template-columns: 120px 160px 1fr;
+    gap: 14px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .tbl .row:last-child { border-bottom: 0; }
+  .tbl .row.head {
+    background: var(--surface-2);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .tbl .t { font-weight: 600; }
+  .tbl .say { color: var(--text-2); font-size: 14px; }
+  .tbl .meta { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  ul { margin: 10px 0 0; padding-left: 20px; }
+  li { margin: 6px 0; color: var(--text-2); }
+  li strong, .tbl .t strong { color: var(--text); }
+
+  .check { padding-left: 0; list-style: none; }
+  .check li { padding-left: 28px; position: relative; }
+  .check li::before {
+    content: "✓";
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--success);
+    font-weight: 700;
+  }
+
+  .kbd {
+    display: inline-block;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    padding: 1px 7px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 13px;
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--text-3);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .tbl .row { grid-template-columns: 1fr; gap: 6px; }
+    .tbl .row.head { display: none; }
+    .hero h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <span class="kicker"><span class="dot"></span> Demo talking guide</span>
+    <h1>How to explain the demo data</h1>
+    <p>
+      A simple, plain-English guide to the mock data in the Incident Manager.
+      Use it before a demo so the numbers, screens, and the three special
+      incidents all make sense — to you and to the people watching.
+    </p>
+  </div>
+
+  <!-- 1 -->
+  <section>
+    <h2><span class="num">01</span>The 30-second story</h2>
+    <p class="lede">If you only have time to say one thing, say this:</p>
+    <div class="card">
+      <p style="margin:0">
+        "This is a made-up but realistic set of <strong>19 incidents</strong> from a
+        fictional company. They were loaded through the <strong>real API</strong>, so the
+        app behaves exactly as it would with production data — live counts,
+        timelines, filters, and analytics all work. We use it to demo the product
+        without needing real customer data."
+      </p>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span class="num">02</span>What the data is</h2>
+    <div class="card">
+      <ul>
+        <li>It's <strong>fictional</strong>. No real company, no real customers, no real incidents.</li>
+        <li>It's <strong>realistic</strong>. The stories are the kind small teams actually hit: outages, slow services, expired certificates, bad deploys.</li>
+        <li>It's loaded through the <strong>real API</strong> — so events, timelines, and dashboard numbers behave like production.</li>
+        <li>Every incident has a <strong>status</strong> and a <strong>severity</strong>, and most have a start time, sometimes an end time, a root cause, and a resolution.</li>
+        <li>Each status has a <strong>full story</strong>. Think of each incident as a real mini-crisis that already happened.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span class="num">03</span>The numbers at a glance</h2>
+    <p class="lede">These are the numbers to memorize. They make the dashboard instantly believable.</p>
+    <div class="chips">
+      <div class="chip"><div class="value">19</div><div class="label">Total incidents</div></div>
+      <div class="chip"><div class="value">9</div><div class="label">Active (open or investigating)</div></div>
+      <div class="chip"><div class="value">2</div><div class="label">Critical and active</div></div>
+      <div class="chip"><div class="value">6</div><div class="label">Resolved today</div></div>
+      <div class="chip"><div class="value">~3h</div><div class="label">Average time to resolve (MTTR)</div></div>
+    </div>
+    <div class="callout" style="margin-top:12px">
+      <span class="title">Why "Resolved today" shows 6:</span>
+      When the data is loaded, the API stamps a fresh "updated" time on the
+      6 resolved incidents. So they all count as resolved on today's date.
+      That's why the guide says to load the data <em>on the same day</em> as the demo.
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span class="num">04</span>The four statuses</h2>
+    <p class="lede">A status answers: "Where is this incident right now?"</p>
+    <div class="grid2">
+      <div class="card">
+        <span class="b b-st-open"><span class="dot"></span>Open</span>
+        <p style="margin:10px 0 0">The problem is happening <strong>right now</strong> and nobody is working on it yet. It's the "just created, needs attention" state.</p>
+      </div>
+      <div class="card">
+        <span class="b b-st-invest"><span class="dot"></span>Investigating</span>
+        <p style="margin:10px 0 0">A human is on it. The team has started digging in, but there's <strong>no fix yet</strong>.</p>
+      </div>
+      <div class="card">
+        <span class="b b-st-resolved"><span class="dot"></span>Resolved</span>
+        <p style="margin:10px 0 0">The problem is <strong>fixed</strong>. There's a recorded root cause and a resolution, and it's still on the board for review.</p>
+      </div>
+      <div class="card">
+        <span class="b b-st-closed"><span class="dot"></span>Closed</span>
+        <p style="margin:10px 0 0"><strong>Done and filed away</strong>. The whole story is saved as history — useful for lookups and learning.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span class="num">05</span>The four severities</h2>
+    <p class="lede">A severity answers: "How big is the problem?" Red is worst.</p>
+    <div class="grid2">
+      <div class="card">
+        <span class="b b-sev-critical"><span class="dot"></span>Critical</span>
+        <p style="margin:10px 0 0">Money or customers are being hurt <strong>right now</strong> — e.g. checkout is failing or logins are broken.</p>
+      </div>
+      <div class="card">
+        <span class="b b-sev-high"><span class="dot"></span>High</span>
+        <p style="margin:10px 0 0">Major impact but not total — e.g. a key service is erroring or slow.</p>
+      </div>
+      <div class="card">
+        <span class="b b-sev-medium"><span class="dot"></span>Medium</span>
+        <p style="margin:10px 0 0">Noticeable but limited impact — e.g. a service is slower than normal or one feature misbehaves.</p>
+      </div>
+      <div class="card">
+        <span class="b b-sev-low"><span class="dot"></span>Low</span>
+        <p style="margin:10px 0 0">Minor annoyance — e.g. slight delays, cosmetic problems, or small backlogs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span class="num">06</span>Three special incidents to point at</h2>
+    <p class="lede">These three were added on purpose. Each one proves the app handles real-world edge cases.</p>
+
+    <div class="card">
+      <div class="meta" style="margin-bottom:8px">
+        <span class="b b-sev-medium"><span class="dot"></span>Medium</span>
+        <span class="b b-st-open"><span class="dot"></span>Open</span>
+      </div>
+      <div class="t"><strong>1. Stale API keys in rotation</strong> — "open" for ~90 days.</div>
+      <p class="say" style="margin:6px 0 0">
+        What to say: <em>"Not every incident is urgent. This one has been open for
+        months — long-running security debt. Watch how the dashboard and lists
+        handle a very old, still-unresolved item without treating it like a fresh
+        alert."</em>
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="meta" style="margin-bottom:8px">
+        <span class="b b-sev-low"><span class="dot"></span>Low</span>
+        <span class="b b-st-resolved"><span class="dot"></span>Resolved</span>
+      </div>
+      <div class="t"><strong>2. Background job crashed and recovered</strong> — no description and no services listed.</div>
+      <p class="say" style="margin:6px 0 0">
+        What to say: <em>"Real incidents often arrive with missing info. This one has
+        a title and a fix, but no description and no affected services. The app
+        still shows it cleanly — nothing breaks, nothing looks broken."</em>
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="meta" style="margin-bottom:8px">
+        <span class="b b-sev-high"><span class="dot"></span>High</span>
+        <span class="b b-st-resolved"><span class="dot"></span>Resolved</span>
+      </div>
+      <div class="t"><strong>3. Upload service disk full</strong> — resolved today.</div>
+      <p class="say" style="margin:6px 0 0">
+        What to say: <em>"This one keeps the 'Resolved Today' number honest. Its
+        end time lands on today's date, so it drives that KPI — a small but real
+        story: the disk filled up during the nightly backup."</em>
+      </p>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span class="num">07</span>What each screen shows</h2>
+    <div class="card">
+      <div class="t"><strong>Dashboard</strong></div>
+      <ul>
+        <li>Points at the KPI cards: <strong>9 active</strong>, <strong>2 critical</strong>, <strong>6 resolved today</strong>, <strong>~3h MTTR</strong>.</li>
+        <li>Say: <em>"Every number here is computed live from the incidents — nothing is hard-coded."</em></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="t"><strong>Incidents list</strong></div>
+      <ul>
+        <li>Use the filters to show only <strong>critical</strong>, then only <strong>resolved</strong>.</li>
+        <li>Say: <em>"Filters run against the API, so you can slice the data any way."</em></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="t"><strong>Incident detail (e.g. "Full production outage")</strong></div>
+      <ul>
+        <li>Open its <strong>timeline</strong>: open → investigating → resolved → closed, plus root cause and resolution.</li>
+        <li>Say: <em>"Every status change is recorded as a real timeline event, the way it'd happen in production."</em></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="t"><strong>Logs &amp; Analytics</strong></div>
+      <ul>
+        <li>Logs page shows live sample log lines; pause the stream to freeze it.</li>
+        <li>Analytics shows real derived numbers: time to resolve, how often incidents happen, which services are busiest.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="t"><strong>Security Checker</strong></div>
+      <ul>
+        <li>If you scan a repository, the story ties in: "Stale API keys in rotation" is the kind of finding a scan surfaces.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <h2><span class="num">08</span>All 19 incidents, in plain English</h2>
+    <p class="lede">One line each, so you can point at anything on screen with confidence.</p>
+    <div class="tbl">
+      <div class="row head">
+        <div>Title (what to search)</div>
+        <div>Severity / status</div>
+        <div>One-line story</div>
+      </div>
+
+      <div class="row"><div class="t">Payment processing failing</div><div class="meta"><span class="b b-sev-critical">Critical</span><span class="b b-st-open">Open</span></div><div class="say">A checkout outage is live — error rate jumped to 38% in 15 minutes.</div></div>
+      <div class="row"><div class="t">Elevated 5xx from API gateway</div><div class="meta"><span class="b b-sev-high">High</span><span class="b b-st-open">Open</span></div><div class="say">Suspected a 10:00 deploy; error rate still above normal.</div></div>
+      <div class="row"><div class="t">User service slow under peak load</div><div class="meta"><span class="b b-sev-medium">Medium</span><span class="b b-st-open">Open</span></div><div class="say">Slow but not down — response time jumped 10x during morning peak.</div></div>
+      <div class="row"><div class="t">Delayed email delivery</div><div class="meta"><span class="b b-sev-low">Low</span><span class="b b-st-open">Open</span></div><div class="say">Password-reset emails are late, not lost. Annoying, not urgent.</div></div>
+      <div class="row"><div class="t">Stale API keys in rotation</div><div class="meta"><span class="b b-sev-medium">Medium</span><span class="b b-st-open">Open</span></div><div class="say">Older than 90 days — the slow-burn security-debt example.</div></div>
+      <div class="row"><div class="t">Auth service login failures</div><div class="meta"><span class="b b-sev-critical">Critical</span><span class="b b-st-invest">Investigating</span></div><div class="say">25% of logins failing; a team is on it right now.</div></div>
+      <div class="row"><div class="t">Database replica lag</div><div class="meta"><span class="b b-sev-high">High</span><span class="b b-st-invest">Investigating</span></div><div class="say">Read replica fell more than 60 seconds behind — analytics read stale data.</div></div>
+      <div class="row"><div class="t">Redis cache eviction rate high</div><div class="meta"><span class="b b-sev-medium">Medium</span><span class="b b-st-invest">Investigating</span></div><div class="say">Cache hits fell from 98% to 71% — a batch job looks guilty.</div></div>
+      <div class="row"><div class="t">Worker queue backlog growing</div><div class="meta"><span class="b b-sev-low">Low</span><span class="b b-st-invest">Investigating</span></div><div class="say">40k messages backed up; no failures yet — just watching closely.</div></div>
+      <div class="row"><div class="t">Full production outage</div><div class="meta"><span class="b b-sev-critical">Critical</span><span class="b b-st-resolved">Resolved</span></div><div class="say">The big one: everything was down ~4 hours after a bad load-balancer config.</div></div>
+      <div class="row"><div class="t">Billing webhook processing stopped</div><div class="meta"><span class="b b-sev-high">High</span><span class="b b-st-resolved">Resolved</span></div><div class="say">3,200 webhooks got stuck; team replayed them all after the fix.</div></div>
+      <div class="row"><div class="t">Search indexing stuck</div><div class="meta"><span class="b b-sev-medium">Medium</span><span class="b b-st-resolved">Resolved</span></div><div class="say">New content stopped appearing in search for 5 hours.</div></div>
+      <div class="row"><div class="t">Health check returning stale data</div><div class="meta"><span class="b b-sev-low">Low</span><span class="b b-st-resolved">Resolved</span></div><div class="say">Said "ready" when it wasn't; fixed in about an hour.</div></div>
+      <div class="row"><div class="t">Upload service disk full</div><div class="meta"><span class="b b-sev-high">High</span><span class="b b-st-resolved">Resolved</span></div><div class="say">Disk hit 100% in the night; resolved today → feeds "Resolved Today".</div></div>
+      <div class="row"><div class="t">Background job crashed and recovered</div><div class="meta"><span class="b b-sev-low">Low</span><span class="b b-st-resolved">Resolved</span></div><div class="say">No description, no services — proves the UI handles missing info.</div></div>
+      <div class="row"><div class="t">Data center network partition</div><div class="meta"><span class="b b-sev-critical">Critical</span><span class="b b-st-closed">Closed</span></div><div class="say">Split-brain between zones — a classic hard lesson, filed away.</div></div>
+      <div class="row"><div class="t">Certificate expiry caused TLS failures</div><div class="meta"><span class="b b-sev-high">High</span><span class="b b-st-closed">Closed</span></div><div class="say">Certificate expired overnight; auto-renewal had never been switched on.</div></div>
+      <div class="row"><div class="t">Monitoring dashboard wrong metrics</div><div class="meta"><span class="b b-sev-medium">Medium</span><span class="b b-st-closed">Closed</span></div><div class="say">The tool broke, not the traffic — a dashboard-rules typo.</div></div>
+      <div class="row"><div class="t">Typo in feature flag name</div><div class="meta"><span class="b b-sev-low">Low</span><span class="b b-st-closed">Closed</span></div><div class="say">One wrong character caused a redirect loop. Truly a classic.</div></div>
+    </div>
+  </section>
+
+  <!-- 9 -->
+  <section>
+    <h2><span class="num">09</span>Before the demo</h2>
+    <div class="card">
+      <ul class="check">
+        <li>Load the data <strong>the same day</strong> as the demo, so "Resolved Today" is correct.</li>
+        <li>Start the backend (<span class="kbd">uvicorn app.main:app</span>) and the frontend (<span class="kbd">npm run start</span>).</li>
+        <li>Open <strong>Dashboard</strong> first — the KPI cards tell the story instantly.</li>
+        <li>Then <strong>Incidents</strong> (play with filters) and one <strong>incident detail</strong> page with a timeline.</li>
+        <li>Expect: <strong>19 total</strong> incidents, <strong>Active 9</strong>, <strong>Critical 2</strong>, <strong>Resolved today 6</strong>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Incident Copilot — demo data guide. Mock data lives in <span class="kbd">mock-data/incidents.seed.json</span> and loads via <span class="kbd">load_mock_data.py</span>.
+  </footer>
+
+</div>
+</body>
+</html>

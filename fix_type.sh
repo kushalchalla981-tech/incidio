@@ -1,0 +1,1 @@
+sed -i 's/{scan.metadata?.sub_scores && typeof scan.metadata.sub_scores === "object" && (/{Boolean(scan.metadata?.sub_scores) && typeof scan.metadata.sub_scores === "object" && (/g' frontend/src/app/security/scans/[id]/page.tsx

@@ -1,0 +1,211 @@
+[
+  {
+    "title": "Payment processing failing - checkout returns 500s",
+    "description": "Checkout requests started failing at 08:12 UTC with HTTP 500 responses from the payments service. Error rate climbed from 0% to 38% within 15 minutes. Transactions are timing out against the payment provider and not being retried. Customers see a generic 'Something went wrong' page during checkout.",
+    "severity": "critical",
+    "status": "open",
+    "start_hours_ago": 2,
+    "duration_hours": null,
+    "affected_services": ["payments-svc", "db-primary"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Elevated 5xx rate from API gateway",
+    "description": "The API gateway is returning an elevated rate of 5xx responses (currently 4-6% vs a 0.5% baseline) since the 10:00 deploy. Retry storms are amplifying the error rate for downstream services.",
+    "severity": "high",
+    "status": "open",
+    "start_hours_ago": 4,
+    "duration_hours": null,
+    "affected_services": ["api-gateway"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "User service slow under peak load",
+    "description": "User service p95 latency has increased from 120ms to 1.4s during the morning peak. CPU is saturated on 6 of 8 replicas. No recent deploys to user-svc; suspected connection pool exhaustion against db-primary.",
+    "severity": "medium",
+    "status": "open",
+    "start_hours_ago": 6,
+    "duration_hours": null,
+    "affected_services": ["user-svc"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Delayed email delivery for password resets",
+    "description": "Password reset emails are taking 10-15 minutes to deliver instead of the usual < 2 minutes. The notification worker is backing up on high-volume digests. No emails lost so far.",
+    "severity": "low",
+    "status": "open",
+    "start_hours_ago": 1,
+    "duration_hours": null,
+    "affected_services": ["notification-svc"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Auth service unable to validate tokens - login failures",
+    "description": "Login failures are up to 25% this morning. The auth service reports timeouts reaching the token introspection endpoint. Some users are intermittently logged out and cannot re-authenticate. May be related to a shared downstream issue with the identity provider.",
+    "severity": "critical",
+    "status": "investigating",
+    "start_hours_ago": 3,
+    "duration_hours": null,
+    "affected_services": ["auth-svc", "api-gateway"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Database replica lag exceeding 60 seconds",
+    "description": "Read replica lag on db-primary has been above 60s for the past 40 minutes. Analytics queries are returning stale data. A long-running aggregation query is suspected to be holding up WAL replay.",
+    "severity": "high",
+    "status": "investigating",
+    "start_hours_ago": 5,
+    "duration_hours": null,
+    "affected_services": ["db-primary"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Redis cache eviction rate abnormally high",
+    "description": "Cache hit ratio dropped from 98% to 71% in the last two hours. Redis is evicting keys aggressively, forcing many requests to hit the database directly. Investigating whether a bad batch job is filling the cache with junk keys.",
+    "severity": "medium",
+    "status": "investigating",
+    "start_hours_ago": 8,
+    "duration_hours": null,
+    "affected_services": ["redis-cache"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Worker queue backlog growing slowly",
+    "description": "The import queue backlog has grown from near-zero to 40k messages over the past day. Worker throughput is normal but producers are spiking. No consumer errors seen yet; monitoring for downstream delays.",
+    "severity": "low",
+    "status": "investigating",
+    "start_hours_ago": 12,
+    "duration_hours": null,
+    "affected_services": ["worker"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Full production outage - all services down",
+    "description": "All public-facing services were unreachable for roughly four hours after the load balancer failed closed. Incident began with a spike in 5xx then a full circuit break of the LBR. Primary and standby were both impacted by the same configuration file. Service was restored after the load balancer was rolled back and traffic was rebalanced.",
+    "severity": "critical",
+    "status": "resolved",
+    "start_hours_ago": 24,
+    "duration_hours": 4,
+    "affected_services": ["api-gateway", "user-svc", "db-primary"],
+    "root_cause": "A malformed load balancer configuration shipped in the auto-scaling image caused all backend pools to fail health checks, and the failover policy closed traffic instead of allowing partial delivery.",
+    "resolution": "Rolled back the load balancer image, pushed a fixed config, and rebalanced traffic gradually. Added a canary check for LBR config changes and a minimum-health guard so a failed pool pulls from standby instead of closing entirely."
+  },
+  {
+    "title": "Billing webhook processing stopped",
+    "description": "Webhooks from the payment provider were accumulating unprocessed for three hours after a deploy changed the signature verification logic. Failed events were being dropped to the DLQ. Replayed all events after the fix.",
+    "severity": "high",
+    "status": "resolved",
+    "start_hours_ago": 18,
+    "duration_hours": 3,
+    "affected_services": ["billing-svc"],
+    "root_cause": "A signature verification change rejected valid provider webhooks because the provider sends the signature in a header that was no longer accepted; events were dropped instead of held for retry.",
+    "resolution": "Reverted the signature logic and re-verified the provider schema, then replayed the 3,200 queued webhooks from the DLQ. Added an integration test that replays a captured production webhook on every deploy."
+  },
+  {
+    "title": "Search indexing stuck - new content not appearing",
+    "description": "New documents stopped appearing in search results during a large reindex. The indexing worker deadlocked on a lock with the reindex job and was not producing progress. Search availability was unaffected.",
+    "severity": "medium",
+    "status": "resolved",
+    "start_hours_ago": 36,
+    "duration_hours": 5,
+    "affected_services": ["search-svc"],
+    "root_cause": "The reindex job acquired an exclusive lock that the incremental indexer also required, causing a deadlock until both timed out. The indexer did not retry.",
+    "resolution": "Cancelled the conflicting reindex, restarted the incremental indexer, and caught up the backlog. Added advisory lock ordering so reindex and incremental indexing can no longer contend."
+  },
+  {
+    "title": "Health check endpoint returning stale data",
+    "description": "/health/ready was returning 'ready' even though the service was degraded, because the underlying dependency check was cached. One role briefly believed a degraded node was healthy.",
+    "severity": "low",
+    "status": "resolved",
+    "start_hours_ago": 48,
+    "duration_hours": 1,
+    "affected_services": ["api-gateway"],
+    "root_cause": "The health aggregation cached dependency status for 60s while the dependency itself failed fast, so readiness lagged behind real state.",
+    "resolution": "Made the readiness check cache-optional and reduced the default cache TTL. Added a synthetic degradation test that verifies readiness flips within 5 seconds of a dependency failing."
+  },
+  {
+    "title": "Data center network partition - split-brain detected",
+    "description": "A network partition between the two availability zones caused a split-brain scenario in the primary datastore. Writes were accepted in both zones, and reconciliation was required. Impacted services failed over automatically after the partition healed.",
+    "severity": "critical",
+    "status": "closed",
+    "start_hours_ago": 72,
+    "duration_hours": 6,
+    "affected_services": ["db-primary", "redis-cache"],
+    "root_cause": "The datastore quorum was configured with an even, non-fault-tolerant quorum (2 nodes), so a single partition split the vote evenly and neither side declared itself the leader.",
+    "resolution": "Migrated to a 3-node quorum with a tiebreaker witness, enabled strict fencing, and ran a partition drill to confirm single-leader behaviour afterwards."
+  },
+  {
+    "title": "Certificate expiry caused TLS failures",
+    "description": "Outbound TLS from the API gateway to the auth service failed after a wildcard certificate expired overnight. Traffic to authenticated endpoints returned 502 until the certificate was replaced. Auto-renewal had not been installed.",
+    "severity": "high",
+    "status": "closed",
+    "start_hours_ago": 96,
+    "duration_hours": 2,
+    "affected_services": ["api-gateway", "auth-svc"],
+    "root_cause": "The wildcard certificate was issued for 90 days but the renewal automation had never been enabled on the issuing host, so no alert fired before expiry.",
+    "resolution": "Replaced the certificate, enabled automated renewal with a reminder 14 days before expiry, and added a certificate-age metric to the monitoring dashboard that alerts at 20 days remaining."
+  },
+  {
+    "title": "Monitoring dashboard showing incorrect metrics",
+    "description": "The SRE dashboard showed near-zero traffic for one service for several hours. The bug was caused by a label mismatch in the recording rule for that service. No actual traffic loss occurred.",
+    "severity": "medium",
+    "status": "closed",
+    "start_hours_ago": 120,
+    "duration_hours": 3,
+    "affected_services": ["worker"],
+    "root_cause": "A recording rule referenced the legacy service label name after the service was renamed, producing empty series and making the dashboard look broken.",
+    "resolution": "Corrected the label reference and added a rule lint step to CI that fails on references to unknown label names."
+  },
+  {
+    "title": "Typo in feature flag name caused redirect loop",
+    "description": "A one-character typo in a feature flag name caused the frontend gateway to enter a redirect loop for users behind the flag. After the typo was fixed, behavior returned to normal.",
+    "severity": "low",
+    "status": "closed",
+    "start_hours_ago": 144,
+    "duration_hours": 0.5,
+    "affected_services": ["user-svc"],
+    "root_cause": "The flag was deployed as 'new-checkout-flow' but the code read 'new-checkoutflow', so the check always evaluated false and the fallback path looped on itself.",
+    "resolution": "Corrected the flag name and added a validation script that compares flag references against the registry before deploy."
+  },
+  {
+    "title": "Stale API keys in rotation - security review pending",
+    "description": "Several API keys flagged by the security scan are still active in the ring. Rotation has been pending for 90 days while we confirm which clients depend on the legacy keys. No abuse observed, but this remains an open security debt item.",
+    "severity": "medium",
+    "status": "open",
+    "start_hours_ago": 2160,
+    "duration_hours": null,
+    "affected_services": ["auth-svc"],
+    "root_cause": null,
+    "resolution": null
+  },
+  {
+    "title": "Background job crashed and recovered",
+    "description": null,
+    "severity": "low",
+    "status": "resolved",
+    "start_hours_ago": 24,
+    "duration_hours": 2,
+    "affected_services": [],
+    "root_cause": "The job runner killed the process when it exceeded the memory limit during the nightly aggregation.",
+    "resolution": "Restarted the job with a raised memory ceiling and added a retry with backoff for transient OOMs."
+  },
+  {
+    "title": "Upload service disk full - media storage failing",
+    "description": "Uploads to the media service began failing with 'disk full' errors shortly after the 04:00 backup job ran. The backup and the media volume shared the same filesystem, which hit 100% capacity. Purged old snapshots and throttled backup bandwidth.",
+    "severity": "high",
+    "status": "resolved",
+    "start_hours_ago": 6,
+    "duration_hours": 3,
+    "affected_services": ["media-svc"],
+    "root_cause": "The nightly backup wrote to the same mount as the media volume without a size guard; the volume filled to 100% and writes failed without a clear error.",
+    "resolution": "Moved backups to a dedicated volume, added a 90% full alert, and added a safety margin so uploads pause safely instead of failing hard when space runs low."
+  }
+]
